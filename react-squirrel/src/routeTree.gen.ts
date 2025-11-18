@@ -13,15 +13,33 @@ import { createFileRoute } from '@tanstack/react-router'
 // Import Routes
 
 import { Route as rootRoute } from './routes/__root'
+import { Route as TagsImport } from './routes/tags'
+import { Route as SnapshotsImport } from './routes/snapshots'
 import { Route as SnapshotDetailsImport } from './routes/snapshot-details'
+import { Route as PvBrowserImport } from './routes/pv-browser'
 import { Route as IndexImport } from './routes/index'
+import { Route as ComparisonImport } from './routes/comparison'
 
 // Create Virtual Routes
 
+const TagsLazyImport = createFileRoute('/tags')()
+const SnapshotsLazyImport = createFileRoute('/snapshots')()
 const SnapshotDetailsLazyImport = createFileRoute('/snapshot-details')()
+const PvBrowserLazyImport = createFileRoute('/pv-browser')()
 const IndexLazyImport = createFileRoute('/')()
+const ComparisonLazyImport = createFileRoute('/comparison')()
 
 // Create/Update Routes
+
+const TagsLazyRoute = TagsLazyImport.update({
+  path: '/tags',
+  getParentRoute: () => rootRoute,
+} as any).lazy(() => import('./routes/tags').then((d) => d.Route))
+
+const SnapshotsLazyRoute = SnapshotsLazyImport.update({
+  path: '/snapshots',
+  getParentRoute: () => rootRoute,
+} as any).lazy(() => import('./routes/snapshots').then((d) => d.Route))
 
 const SnapshotDetailsLazyRoute = SnapshotDetailsLazyImport.update({
   path: '/snapshot-details',
@@ -30,10 +48,20 @@ const SnapshotDetailsLazyRoute = SnapshotDetailsLazyImport.update({
   import('./routes/snapshot-details').then((d) => d.Route),
 )
 
+const PvBrowserLazyRoute = PvBrowserLazyImport.update({
+  path: '/pv-browser',
+  getParentRoute: () => rootRoute,
+} as any).lazy(() => import('./routes/pv-browser').then((d) => d.Route))
+
 const IndexLazyRoute = IndexLazyImport.update({
   path: '/',
   getParentRoute: () => rootRoute,
 } as any).lazy(() => import('./routes/index').then((d) => d.Route))
+
+const ComparisonLazyRoute = ComparisonLazyImport.update({
+  path: '/comparison',
+  getParentRoute: () => rootRoute,
+} as any).lazy(() => import('./routes/comparison').then((d) => d.Route))
 
 // Populate the FileRoutesByPath interface
 
@@ -46,11 +74,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexLazyImport
       parentRoute: typeof rootRoute
     }
+    '/comparison': {
+      id: '/comparison'
+      path: '/comparison'
+      fullPath: '/comparison'
+      preLoaderRoute: typeof ComparisonLazyImport
+      parentRoute: typeof rootRoute
+    }
+    '/pv-browser': {
+      id: '/pv-browser'
+      path: '/pv-browser'
+      fullPath: '/pv-browser'
+      preLoaderRoute: typeof PvBrowserLazyImport
+      parentRoute: typeof rootRoute
+    }
     '/snapshot-details': {
       id: '/snapshot-details'
       path: '/snapshot-details'
       fullPath: '/snapshot-details'
       preLoaderRoute: typeof SnapshotDetailsLazyImport
+      parentRoute: typeof rootRoute
+    }
+    '/snapshots': {
+      id: '/snapshots'
+      path: '/snapshots'
+      fullPath: '/snapshots'
+      preLoaderRoute: typeof SnapshotsLazyImport
+      parentRoute: typeof rootRoute
+    }
+    '/tags': {
+      id: '/tags'
+      path: '/tags'
+      fullPath: '/tags'
+      preLoaderRoute: typeof TagsLazyImport
       parentRoute: typeof rootRoute
     }
   }
@@ -60,7 +116,11 @@ declare module '@tanstack/react-router' {
 
 export const routeTree = rootRoute.addChildren({
   IndexLazyRoute,
+  ComparisonLazyRoute,
+  PvBrowserLazyRoute,
   SnapshotDetailsLazyRoute,
+  SnapshotsLazyRoute,
+  TagsLazyRoute,
 })
 
 /* prettier-ignore-end */

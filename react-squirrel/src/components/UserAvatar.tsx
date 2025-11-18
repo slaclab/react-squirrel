@@ -1,5 +1,6 @@
 import React from 'react';
 import { Avatar, Box, Typography, Menu, MenuItem, IconButton } from '@mui/material';
+import { AccountCircle } from '@mui/icons-material';
 
 interface UserAvatarProps {
   userName?: string;
@@ -33,18 +34,13 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
         aria-haspopup="true"
         aria-expanded={open ? 'true' : undefined}
       >
-        <Avatar
+        <AccountCircle
           sx={{
             width: 40,
             height: 40,
-            backgroundColor: '#e91e63',
-            color: 'white',
-            fontWeight: 'bold',
-            fontSize: '1.1rem',
+            color: '#757575',
           }}
-        >
-          {userInitials}
-        </Avatar>
+        />
       </IconButton>
       <Menu
         id="user-menu"

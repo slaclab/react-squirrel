@@ -17,6 +17,7 @@ import {
   Search as SearchIcon,
   Label as LabelIcon,
   ChevronLeft as ChevronLeftIcon,
+  Pets as PetsIcon,
 } from '@mui/icons-material';
 import { Link, useLocation } from '@tanstack/react-router';
 
@@ -57,7 +58,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, onToggle }) => {
         },
       }}
     >
-      {/* Header with v3 branding */}
+      {/* Header with Squirrel branding */}
       <Box
         sx={{
           display: 'flex',
@@ -68,9 +69,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, onToggle }) => {
         }}
       >
         {open && (
-          <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'white' }}>
-            v3
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <PetsIcon sx={{ color: 'white', fontSize: '1.5rem' }} />
+            <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'white' }}>
+              Squirrel
+            </Typography>
+          </Box>
         )}
         <IconButton onClick={onToggle} sx={{ color: 'white' }}>
           {open ? <ChevronLeftIcon /> : <MenuIcon />}

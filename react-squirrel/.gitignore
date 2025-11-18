@@ -12,6 +12,13 @@ dist
 dist-ssr
 *.local
 
+# TanStack Router
+# Uncomment if you want to ignore the auto-generated route tree
+# src/routeTree.gen.ts
+
+# Husky
+.husky/_
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

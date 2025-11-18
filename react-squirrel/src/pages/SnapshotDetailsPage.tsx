@@ -1,5 +1,16 @@
 import React, { useState } from 'react';
-import { FaRedo, FaPlus } from 'react-icons/fa';
+import {
+  Box,
+  Stack,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Typography,
+  CircularProgress,
+} from '@mui/material';
+import { Restore, Add } from '@mui/icons-material';
 import { Snapshot, PV } from '../types';
 import { SnapshotHeader, SearchBar, PVTable } from '../components';
 
@@ -40,73 +51,90 @@ export const SnapshotDetailsPage: React.FC<SnapshotDetailsPageProps> = ({
 
   if (!snapshot) {
     return (
-      <div className="snapshot-details-page">
-        <div className="loading">Loading snapshot...</div>
-      </div>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+        }}
+      >
+        <Stack spacing={2} alignItems="center">
+          <CircularProgress />
+          <Typography variant="h6" color="text.secondary">
+            Loading snapshot...
+          </Typography>
+        </Stack>
+      </Box>
     );
   }
 
   return (
-    <div className="snapshot-details-page">
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100vh',
+        p: 2,
+        bgcolor: 'background.default',
+      }}
+    >
       <SnapshotHeader snapshot={snapshot} onBack={onBack} />
 
-      <div className="interactions-bar">
-        <SearchBar
-          value={searchText}
-          onChange={setSearchText}
-          placeholder="Search PVs..."
-        />
-        <div className="action-buttons">
-          <button className="restore-button" onClick={handleRestore}>
-            <FaRedo /> Restore
-          </button>
-          <button className="compare-button" onClick={handleCompare}>
-            <FaPlus /> Compare
-          </button>
-        </div>
-      </div>
+      <Stack direction="row" spacing={2} sx={{ mb: 2 }} alignItems="center">
+        <SearchBar value={searchText} onChange={setSearchText} placeholder="Search PVs..." />
+        <Box sx={{ display: 'flex', gap: 1.5, ml: 'auto' }}>
+          <Button
+            variant="outlined"
+            startIcon={<Restore />}
+            onClick={handleRestore}
+            size="medium"
+          >
+            Restore
+          </Button>
+          <Button variant="outlined" startIcon={<Add />} onClick={handleCompare} size="medium">
+            Compare
+          </Button>
+        </Box>
+      </Stack>
 
-      <PVTable
-        pvs={snapshot.pvs}
-        searchFilter={searchText}
-        onSelectionChange={setSelectedPVs}
-      />
+      <PVTable pvs={snapshot.pvs} searchFilter={searchText} onSelectionChange={setSelectedPVs} />
 
       {/* Restore Confirmation Dialog */}
-      {showRestoreDialog && (
-        <div className="dialog-overlay" onClick={() => setShowRestoreDialog(false)}>
-          <div className="dialog" onClick={(e) => e.stopPropagation()}>
-            <h2>
-              {selectedPVs.length === 0
-                ? 'Restore all PVs?'
-                : `Restore ${selectedPVs.length} selected PV${selectedPVs.length > 1 ? 's' : ''}?`}
-            </h2>
-            <div className="dialog-buttons">
-              <button className="dialog-cancel" onClick={() => setShowRestoreDialog(false)}>
-                Cancel
-              </button>
-              <button className="dialog-ok" onClick={confirmRestore}>
-                OK
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Dialog
+        open={showRestoreDialog}
+        onClose={() => setShowRestoreDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          {selectedPVs.length === 0
+            ? 'Restore all PVs?'
+            : `Restore ${selectedPVs.length} selected PV${selectedPVs.length > 1 ? 's' : ''}?`}
+        </DialogTitle>
+        <DialogActions>
+          <Button onClick={() => setShowRestoreDialog(false)}>Cancel</Button>
+          <Button onClick={confirmRestore} variant="contained" color="primary">
+            OK
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Compare Dialog - Placeholder */}
-      {showCompareDialog && (
-        <div className="dialog-overlay" onClick={() => setShowCompareDialog(false)}>
-          <div className="dialog compare-dialog" onClick={(e) => e.stopPropagation()}>
-            <h2>Select Comparison Snapshot</h2>
-            <p>Comparison functionality will be implemented here.</p>
-            <div className="dialog-buttons">
-              <button className="dialog-cancel" onClick={() => setShowCompareDialog(false)}>
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+      <Dialog
+        open={showCompareDialog}
+        onClose={() => setShowCompareDialog(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Select Comparison Snapshot</DialogTitle>
+        <DialogContent>
+          <Typography>Comparison functionality will be implemented here.</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowCompareDialog(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 };

@@ -1,34 +1,12 @@
-import React, { useState } from 'react';
-import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
-import { SnapshotDetailsPage } from './pages';
-import { Snapshot, PV, EpicsData, Severity, Status } from './types';
-
-// Create Material UI theme
-const theme = createTheme({
-  palette: {
-    mode: 'light',
-    primary: {
-      main: '#0066cc',
-    },
-    secondary: {
-      main: '#666666',
-    },
-  },
-  typography: {
-    fontFamily: [
-      '-apple-system',
-      'BlinkMacSystemFont',
-      '"Segoe UI"',
-      'Roboto',
-      '"Helvetica Neue"',
-      'Arial',
-      'sans-serif',
-    ].join(','),
-  },
-});
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { SnapshotDetailsPage } from '../pages';
+import { Snapshot, PV, EpicsData, Severity, Status } from '../types';
 
 // Sample data for demonstration
-const createSampleEpicsData = (value: any, severity: Severity = Severity.NO_ALARM): EpicsData => ({
+const createSampleEpicsData = (
+  value: string | number,
+  severity: Severity = Severity.NO_ALARM
+): EpicsData => ({
   data: value,
   status: Status.NO_ALARM,
   severity: severity,
@@ -111,12 +89,15 @@ const sampleSnapshot: Snapshot = {
   creation_time: new Date(),
 };
 
-function App() {
-  const [currentView, setCurrentView] = useState<'list' | 'details'>('details');
+export const Route = createFileRoute('/snapshot-details')({
+  component: SnapshotDetails,
+});
+
+function SnapshotDetails() {
+  const navigate = useNavigate();
 
   const handleBack = () => {
-    console.log('Navigate back to snapshot list');
-    setCurrentView('list');
+    navigate({ to: '/' });
   };
 
   const handleRestore = (pvs: PV[]) => {
@@ -129,16 +110,11 @@ function App() {
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <SnapshotDetailsPage
-        snapshot={sampleSnapshot}
-        onBack={handleBack}
-        onRestore={handleRestore}
-        onCompare={handleCompare}
-      />
-    </ThemeProvider>
+    <SnapshotDetailsPage
+      snapshot={sampleSnapshot}
+      onBack={handleBack}
+      onRestore={handleRestore}
+      onCompare={handleCompare}
+    />
   );
 }
-
-export default App;

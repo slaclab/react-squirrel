@@ -1,5 +1,6 @@
 import React from 'react';
-import { FaSearch } from 'react-icons/fa';
+import { TextField, InputAdornment, IconButton } from '@mui/material';
+import { Search, Clear } from '@mui/icons-material';
 
 interface SearchBarProps {
   value: string;
@@ -10,27 +11,34 @@ interface SearchBarProps {
 export const SearchBar: React.FC<SearchBarProps> = ({
   value,
   onChange,
-  placeholder = 'Search...'
+  placeholder = 'Search...',
 }) => {
   return (
-    <div className="search-bar-container">
-      <FaSearch className="search-icon" />
-      <input
-        type="text"
-        className="search-bar"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-      />
-      {value && (
-        <button
-          className="clear-button"
-          onClick={() => onChange('')}
-          aria-label="Clear search"
-        >
-          ×
-        </button>
-      )}
-    </div>
+    <TextField
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      size="small"
+      sx={{ maxWidth: 400, flex: 1 }}
+      InputProps={{
+        startAdornment: (
+          <InputAdornment position="start">
+            <Search />
+          </InputAdornment>
+        ),
+        endAdornment: value && (
+          <InputAdornment position="end">
+            <IconButton
+              aria-label="Clear search"
+              onClick={() => onChange('')}
+              edge="end"
+              size="small"
+            >
+              <Clear />
+            </IconButton>
+          </InputAdornment>
+        ),
+      }}
+    />
   );
 };

@@ -1,4 +1,22 @@
 import React, { useState, useMemo } from 'react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Checkbox,
+  Paper,
+  Typography,
+  Box,
+} from '@mui/material';
+import {
+  CheckCircle,
+  Warning,
+  Error as ErrorIcon,
+  Cancel,
+} from '@mui/icons-material';
 import { PV, PVHeader, PV_HEADER_STRINGS, Severity } from '../types';
 
 interface PVTableProps {
@@ -7,33 +25,18 @@ interface PVTableProps {
   onSelectionChange?: (selectedPVs: PV[]) => void;
 }
 
-const getSeverityIcon = (severity?: Severity): string => {
+const getSeverityIcon = (severity?: Severity): React.ReactNode => {
   switch (severity) {
     case Severity.NO_ALARM:
-      return '✓';
+      return <CheckCircle fontSize="small" sx={{ color: 'success.main' }} />;
     case Severity.MINOR:
-      return '⚠';
+      return <Warning fontSize="small" sx={{ color: 'warning.main' }} />;
     case Severity.MAJOR:
-      return '⚠';
+      return <ErrorIcon fontSize="small" sx={{ color: 'error.main' }} />;
     case Severity.INVALID:
-      return '✗';
+      return <Cancel fontSize="small" sx={{ color: 'text.disabled' }} />;
     default:
-      return '--';
-  }
-};
-
-const getSeverityClass = (severity?: Severity): string => {
-  switch (severity) {
-    case Severity.NO_ALARM:
-      return 'severity-no-alarm';
-    case Severity.MINOR:
-      return 'severity-minor';
-    case Severity.MAJOR:
-      return 'severity-major';
-    case Severity.INVALID:
-      return 'severity-invalid';
-    default:
-      return '';
+      return <Typography variant="body2">--</Typography>;
   }
 };
 
@@ -87,56 +90,74 @@ export const PVTable: React.FC<PVTableProps> = ({ pvs, searchFilter, onSelection
   };
 
   return (
-    <div className="pv-table-container">
-      <table className="pv-table">
-        <thead>
-          <tr>
-            <th className="checkbox-column">
-              <input
-                type="checkbox"
-                checked={selectAll}
-                onChange={handleSelectAll}
-              />
-            </th>
-            <th className="severity-column">{PV_HEADER_STRINGS[PVHeader.SEVERITY]}</th>
-            <th className="device-column">{PV_HEADER_STRINGS[PVHeader.DEVICE]}</th>
-            <th className="pv-column">{PV_HEADER_STRINGS[PVHeader.PV]}</th>
-            <th className="value-column">{PV_HEADER_STRINGS[PVHeader.SETPOINT]}</th>
-            <th className="value-column">{PV_HEADER_STRINGS[PVHeader.LIVE_SETPOINT]}</th>
-            <th className="value-column">{PV_HEADER_STRINGS[PVHeader.READBACK]}</th>
-            <th className="value-column">{PV_HEADER_STRINGS[PVHeader.LIVE_READBACK]}</th>
-            <th className="config-column">{PV_HEADER_STRINGS[PVHeader.CONFIG]}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredPVs.map(pv => (
-            <tr key={pv.uuid}>
-              <td className="checkbox-column">
-                <input
-                  type="checkbox"
+    <TableContainer component={Paper} sx={{ flex: 1, overflow: 'auto' }}>
+      <Table size="small" stickyHeader>
+        <TableHead>
+          <TableRow>
+            <TableCell padding="checkbox">
+              <Checkbox checked={selectAll} onChange={handleSelectAll} size="small" />
+            </TableCell>
+            <TableCell align="center" sx={{ width: 50 }}>
+              {PV_HEADER_STRINGS[PVHeader.SEVERITY]}
+            </TableCell>
+            <TableCell sx={{ width: 120 }}>{PV_HEADER_STRINGS[PVHeader.DEVICE]}</TableCell>
+            <TableCell sx={{ minWidth: 200, fontFamily: 'monospace' }}>
+              {PV_HEADER_STRINGS[PVHeader.PV]}
+            </TableCell>
+            <TableCell align="right" sx={{ minWidth: 100 }}>
+              {PV_HEADER_STRINGS[PVHeader.SETPOINT]}
+            </TableCell>
+            <TableCell align="right" sx={{ minWidth: 100 }}>
+              {PV_HEADER_STRINGS[PVHeader.LIVE_SETPOINT]}
+            </TableCell>
+            <TableCell align="right" sx={{ minWidth: 100 }}>
+              {PV_HEADER_STRINGS[PVHeader.READBACK]}
+            </TableCell>
+            <TableCell align="right" sx={{ minWidth: 100 }}>
+              {PV_HEADER_STRINGS[PVHeader.LIVE_READBACK]}
+            </TableCell>
+            <TableCell align="center" sx={{ width: 60 }}>
+              {PV_HEADER_STRINGS[PVHeader.CONFIG]}
+            </TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {filteredPVs.map((pv) => (
+            <TableRow key={pv.uuid} hover>
+              <TableCell padding="checkbox">
+                <Checkbox
                   checked={selectedPVs.has(pv.uuid)}
                   onChange={() => handleCheckboxChange(pv.uuid)}
+                  size="small"
                 />
-              </td>
-              <td className={`severity-column ${getSeverityClass(pv.setpoint_data.severity)}`}>
-                {getSeverityIcon(pv.setpoint_data.severity)}
-              </td>
-              <td className="device-column">{pv.device}</td>
-              <td className="pv-column">{pv.setpoint}</td>
-              <td className="value-column">{formatValue(pv.setpoint_data.data)}</td>
-              <td className="value-column live-value">--</td>
-              <td className="value-column">{formatValue(pv.readback_data.data)}</td>
-              <td className="value-column live-value">--</td>
-              <td className="config-column">{pv.config || '--'}</td>
-            </tr>
+              </TableCell>
+              <TableCell align="center">{getSeverityIcon(pv.setpoint_data.severity)}</TableCell>
+              <TableCell>{pv.device}</TableCell>
+              <TableCell sx={{ fontFamily: 'monospace' }}>{pv.setpoint}</TableCell>
+              <TableCell align="right" sx={{ fontFamily: 'monospace' }}>
+                {formatValue(pv.setpoint_data.data)}
+              </TableCell>
+              <TableCell align="right" sx={{ fontFamily: 'monospace', fontStyle: 'italic', color: 'text.secondary' }}>
+                --
+              </TableCell>
+              <TableCell align="right" sx={{ fontFamily: 'monospace' }}>
+                {formatValue(pv.readback_data.data)}
+              </TableCell>
+              <TableCell align="right" sx={{ fontFamily: 'monospace', fontStyle: 'italic', color: 'text.secondary' }}>
+                --
+              </TableCell>
+              <TableCell align="center">{pv.config || '--'}</TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
       {filteredPVs.length === 0 && (
-        <div className="no-results">
-          {searchFilter ? 'No PVs match your search' : 'No PVs available'}
-        </div>
+        <Box sx={{ p: 5, textAlign: 'center' }}>
+          <Typography variant="body1" color="text.secondary">
+            {searchFilter ? 'No PVs match your search' : 'No PVs available'}
+          </Typography>
+        </Box>
       )}
-    </div>
+    </TableContainer>
   );
 };

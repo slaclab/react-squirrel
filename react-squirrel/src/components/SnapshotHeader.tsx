@@ -1,5 +1,6 @@
 import React from 'react';
-import { FaArrowLeft } from 'react-icons/fa';
+import { Box, IconButton, Typography, Stack } from '@mui/material';
+import { ArrowBack } from '@mui/icons-material';
 import { Snapshot } from '../types';
 
 interface SnapshotHeaderProps {
@@ -21,17 +22,25 @@ export const SnapshotHeader: React.FC<SnapshotHeaderProps> = ({ snapshot, onBack
   };
 
   return (
-    <div className="snapshot-header">
-      <button className="back-button" onClick={onBack} aria-label="Go back">
-        <FaArrowLeft size={24} />
-      </button>
-      <span className="header-label">Snapshot</span>
-      <span className="header-separator">|</span>
-      <span className="snapshot-title">{snapshot?.title || 'Loading...'}</span>
-      <span className="header-separator">|</span>
-      <span className="snapshot-time">
+    <Stack direction="row" spacing={1.5} alignItems="center" sx={{ py: 1.5, mb: 2 }}>
+      <IconButton onClick={onBack} aria-label="Go back" size="medium" edge="start">
+        <ArrowBack />
+      </IconButton>
+      <Typography variant="body1" fontWeight={500}>
+        Snapshot
+      </Typography>
+      <Typography variant="h6" color="text.secondary" fontWeight="bold">
+        |
+      </Typography>
+      <Typography variant="body1" fontWeight={600} color="primary">
+        {snapshot?.title || 'Loading...'}
+      </Typography>
+      <Typography variant="h6" color="text.secondary" fontWeight="bold">
+        |
+      </Typography>
+      <Typography variant="body1" color="text.secondary" sx={{ flex: 1 }}>
         {snapshot?.creation_time ? formatTimestamp(snapshot.creation_time) : ''}
-      </span>
-    </div>
+      </Typography>
+    </Stack>
   );
 };

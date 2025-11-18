@@ -51,7 +51,7 @@ export const Route = createRootRoute({
       <Layout>
         <Outlet />
       </Layout>
-      <TanStackRouterDevtools />
+      <TanStackRouterDevtools position="bottom-right" />
     </ThemeProvider>
   ),
 });

@@ -18,6 +18,7 @@ import {
   Label as LabelIcon,
   ChevronLeft as ChevronLeftIcon,
   Pets as PetsIcon,
+  CropSquare as CropSquareIcon,
 } from '@mui/icons-material';
 import { Link, useLocation } from '@tanstack/react-router';
 
@@ -33,9 +34,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, onToggle }) => {
   const location = useLocation();
 
   const menuItems = [
-    { title: 'Snapshots', icon: <CameraIcon />, path: '/snapshots' },
-    { title: 'PVs', icon: <SearchIcon />, path: '/pv-browser' },
-    { title: 'Tag Groups', icon: <LabelIcon />, path: '/tags' },
+    { title: 'View Snapshots', icon: <CameraIcon />, path: '/snapshots' },
+    { title: 'Browse PVs', icon: <SearchIcon />, path: '/pv-browser' },
+    { title: 'Configure Tags', icon: <LabelIcon />, path: '/tags' },
   ];
 
   const isActive = (path: string) => {
@@ -84,7 +85,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, onToggle }) => {
       <Divider sx={{ backgroundColor: 'rgba(255, 255, 255, 0.12)' }} />
 
       {/* Navigation Menu */}
-      <List sx={{ px: 1 }}>
+      <List sx={{ px: 1, flexGrow: 1 }}>
         {menuItems.map((item) => (
           <ListItem key={item.path} disablePadding sx={{ mb: 0.5 }}>
             <ListItemButton
@@ -116,6 +117,35 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, onToggle }) => {
           </ListItem>
         ))}
       </List>
+
+      {/* Save Snapshot Button at Bottom */}
+      <Box sx={{ p: 1, mt: 'auto' }}>
+        <Divider sx={{ backgroundColor: 'rgba(255, 255, 255, 0.12)', mb: 1 }} />
+        <ListItemButton
+          sx={{
+            borderRadius: 1,
+            minHeight: 48,
+            justifyContent: open ? 'initial' : 'center',
+            px: 2,
+            backgroundColor: 'rgba(76, 175, 80, 0.2)',
+            '&:hover': {
+              backgroundColor: 'rgba(76, 175, 80, 0.3)',
+            },
+          }}
+        >
+          <ListItemIcon
+            sx={{
+              minWidth: 0,
+              mr: open ? 2 : 'auto',
+              justifyContent: 'center',
+              color: '#4caf50',
+            }}
+          >
+            <CropSquareIcon />
+          </ListItemIcon>
+          {open && <ListItemText primary="Save Snapshot" sx={{ color: 'white' }} />}
+        </ListItemButton>
+      </Box>
     </Drawer>
   );
 };

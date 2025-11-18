@@ -1,0 +1,312 @@
+/* Snapshot Details Page Styles */
+
+.snapshot-details-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  padding: 16px;
+  background-color: #f5f5f5;
+}
+
+/* Header Styles */
+.snapshot-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  margin-bottom: 16px;
+  font-size: 16px;
+}
+
+.back-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  color: #333;
+  transition: color 0.2s;
+}
+
+.back-button:hover {
+  color: #0066cc;
+}
+
+.header-label {
+  font-weight: 500;
+}
+
+.header-separator {
+  font-weight: bold;
+  font-size: 18px;
+  color: #666;
+}
+
+.snapshot-title {
+  font-weight: 600;
+  color: #0066cc;
+}
+
+.snapshot-time {
+  flex: 1;
+  color: #666;
+}
+
+/* Interactions Bar */
+.interactions-bar {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  align-items: center;
+}
+
+.search-bar-container {
+  position: relative;
+  flex: 1;
+  max-width: 400px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #666;
+  pointer-events: none;
+}
+
+.search-bar {
+  width: 100%;
+  padding: 10px 36px 10px 40px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.search-bar:focus {
+  border-color: #0066cc;
+}
+
+.clear-button {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #999;
+  cursor: pointer;
+  padding: 0 8px;
+  line-height: 1;
+}
+
+.clear-button:hover {
+  color: #333;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.restore-button,
+.compare-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.restore-button:hover,
+.compare-button:hover {
+  background: #f0f0f0;
+  border-color: #0066cc;
+}
+
+/* PV Table Styles */
+.pv-table-container {
+  flex: 1;
+  overflow: auto;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.pv-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.pv-table thead {
+  position: sticky;
+  top: 0;
+  background: #f8f8f8;
+  z-index: 10;
+}
+
+.pv-table th {
+  padding: 12px 8px;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 2px solid #ddd;
+  white-space: nowrap;
+}
+
+.pv-table td {
+  padding: 10px 8px;
+  border-bottom: 1px solid #eee;
+}
+
+.pv-table tbody tr:hover {
+  background-color: #f9f9f9;
+}
+
+/* Column Specific Styles */
+.checkbox-column {
+  width: 40px;
+  text-align: center;
+}
+
+.severity-column {
+  width: 50px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.severity-no-alarm {
+  color: #28a745;
+}
+
+.severity-minor {
+  color: #ffc107;
+}
+
+.severity-major {
+  color: #dc3545;
+}
+
+.severity-invalid {
+  color: #6c757d;
+}
+
+.device-column {
+  width: 120px;
+}
+
+.pv-column {
+  min-width: 200px;
+  font-family: 'Courier New', monospace;
+}
+
+.value-column {
+  min-width: 100px;
+  text-align: right;
+  font-family: 'Courier New', monospace;
+}
+
+.live-value {
+  color: #666;
+  font-style: italic;
+}
+
+.config-column {
+  width: 60px;
+  text-align: center;
+}
+
+.no-results {
+  padding: 40px;
+  text-align: center;
+  color: #666;
+  font-size: 16px;
+}
+
+/* Dialog Styles */
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.dialog {
+  background: white;
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  min-width: 400px;
+  max-width: 600px;
+}
+
+.dialog h2 {
+  margin: 0 0 20px 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.dialog-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.dialog-cancel,
+.dialog-ok {
+  padding: 8px 20px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.dialog-cancel {
+  background: white;
+}
+
+.dialog-cancel:hover {
+  background: #f0f0f0;
+}
+
+.dialog-ok {
+  background: #0066cc;
+  color: white;
+  border-color: #0066cc;
+}
+
+.dialog-ok:hover {
+  background: #0052a3;
+}
+
+.compare-dialog {
+  min-width: 600px;
+  max-width: 800px;
+}
+
+.loading {
+  padding: 40px;
+  text-align: center;
+  font-size: 18px;
+  color: #666;
+}

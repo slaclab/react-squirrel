@@ -1,0 +1,4 @@
+Setpoint,Readback,Description,Device
+TEST:PV:01,TEST:PV:01:RBV,Test PV 1,TEST
+TEST:PV:02,TEST:PV:02:RBV,Test PV 2,TEST
+TEST:PV:03,,Test PV 3 (no readback),TEST

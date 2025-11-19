@@ -1,8 +1,0 @@
-# List requirements here.
-aioca
-apischema
-pcdsutils
-pyside6
-python-dateutil
-qtawesome
-qtpy

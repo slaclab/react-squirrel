@@ -1,9 +1,0 @@
-# These are required for developing the package (running the tests) but not
-# necessarily required for _using_ it.
-caproto
-coverage
-numpy
-pytest
-pytest-asyncio
-pytest-cov
-pytest-qt

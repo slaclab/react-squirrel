@@ -72,7 +72,7 @@ export const tagsService = {
     groupId: string,
     tag: NewTagDTO
   ): Promise<TagsGroupsDTO> {
-    return apiClient.put<TagsGroupsDTO>(
+    return apiClient.post<TagsGroupsDTO>(
       `${API_CONFIG.endpoints.tags}/${groupId}/tags`,
       tag
     );

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import { SnapshotDetailsPage } from './pages';
 import { Snapshot, PV, EpicsData, Severity, Status } from './types';
@@ -129,7 +129,7 @@ const sampleSnapshot: Snapshot = {
 };
 
 function App() {
-  const [currentView, setCurrentView] = useState<'list' | 'details'>('details');
+  const [, setCurrentView] = useState<'list' | 'details'>('details');
 
   const handleBack = () => {
     console.log('Navigate back to snapshot list');

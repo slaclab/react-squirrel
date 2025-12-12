@@ -1,5 +1,5 @@
 import React from 'react';
-import { Avatar, Box, Typography, Menu, MenuItem, IconButton } from '@mui/material';
+import { Box, Typography, Menu, MenuItem, IconButton } from '@mui/material';
 import { AccountCircle } from '@mui/icons-material';
 
 interface UserAvatarProps {
@@ -10,7 +10,6 @@ interface UserAvatarProps {
 
 export const UserAvatar: React.FC<UserAvatarProps> = ({
   userName = 'Test User',
-  userInitials = 'T',
   isAdmin = false,
 }) => {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);

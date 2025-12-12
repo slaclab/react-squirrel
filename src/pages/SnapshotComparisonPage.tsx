@@ -15,7 +15,7 @@ import {
   Checkbox,
 } from '@mui/material';
 import { ArrowBack, Close, CheckCircle, Warning, Error as ErrorIcon } from '@mui/icons-material';
-import { Snapshot, PV, Severity } from '../types';
+import { Snapshot, PV, Severity, AnyEpicsType } from '../types';
 
 interface SnapshotComparisonPageProps {
   mainSnapshot: Snapshot;
@@ -25,8 +25,8 @@ interface SnapshotComparisonPageProps {
 
 interface ComparisonRow {
   pv: PV;
-  mainValue: string | number | undefined;
-  compValue: string | number | undefined;
+  mainValue: AnyEpicsType | undefined;
+  compValue: AnyEpicsType | undefined;
   isDifferent: boolean;
 }
 

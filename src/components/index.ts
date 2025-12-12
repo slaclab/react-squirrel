@@ -10,3 +10,5 @@ export * from './Sidebar';
 export * from './UserAvatar';
 export * from './PVFilterSidebar';
 export * from './CSVImportDialog';
+export * from './CreateSnapshotDialog';
+export * from './VirtualTable';

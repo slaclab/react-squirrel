@@ -3,6 +3,7 @@ import { Box, AppBar, Toolbar, IconButton, Tooltip } from '@mui/material';
 import { Help as HelpIcon, BugReport as BugReportIcon } from '@mui/icons-material';
 import { Sidebar } from './Sidebar';
 import { UserAvatar } from './UserAvatar';
+import { CreateSnapshotDialog } from './CreateSnapshotDialog';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -10,9 +11,14 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [snapshotDialogOpen, setSnapshotDialogOpen] = useState(false);
 
   const handleSidebarToggle = () => {
     setSidebarOpen(!sidebarOpen);
+  };
+
+  const handleSaveSnapshotClick = () => {
+    setSnapshotDialogOpen(true);
   };
 
   const handleHelpClick = () => {
@@ -26,7 +32,17 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       {/* Sidebar */}
-      <Sidebar open={sidebarOpen} onToggle={handleSidebarToggle} />
+      <Sidebar
+        open={sidebarOpen}
+        onToggle={handleSidebarToggle}
+        onSaveSnapshot={handleSaveSnapshotClick}
+      />
+
+      {/* Create Snapshot Dialog */}
+      <CreateSnapshotDialog
+        open={snapshotDialogOpen}
+        onClose={() => setSnapshotDialogOpen(false)}
+      />
 
       {/* Main Content Area */}
       <Box

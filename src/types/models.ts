@@ -78,6 +78,7 @@ export interface Snapshot {
   description: string;
   title: string;
   pvs: PV[];
+  pvCount?: number;  // For list view without loading all PVs
   creation_time: Date;
 }
 

@@ -11,6 +11,7 @@ export const API_CONFIG = {
     snapshots: '/v1/snapshots',
     pvs: '/v1/pvs',
     tags: '/v1/tags',
+    jobs: '/v1/jobs',
   },
   timeout: 30000, // 30 seconds
 };

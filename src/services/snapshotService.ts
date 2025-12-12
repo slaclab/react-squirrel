@@ -8,12 +8,12 @@ import {
   SnapshotDTO,
   SnapshotSummaryDTO,
   NewSnapshotDTO,
-  FindParameter,
+  JobCreatedDTO,
 } from '../types';
 
 export const snapshotService = {
   /**
-   * Get all snapshots with optional filters
+   * Get all snapshots with optional filters (lightweight summary only)
    */
   async findSnapshots(params?: {
     title?: string;
@@ -27,20 +27,44 @@ export const snapshotService = {
   },
 
   /**
-   * Get a specific snapshot by ID
+   * Get a specific snapshot by ID with optional pagination for PV values
+   *
+   * @param snapshotId - The snapshot ID
+   * @param limit - Max number of PV values to return (undefined = all)
+   * @param offset - Number of values to skip for pagination
    */
-  async getSnapshotById(snapshotId: string): Promise<SnapshotDTO> {
+  async getSnapshotById(
+    snapshotId: string,
+    limit?: number,
+    offset: number = 0
+  ): Promise<SnapshotDTO> {
+    const params: Record<string, string | number> = {};
+    if (limit !== undefined) params.limit = limit;
+    if (offset > 0) params.offset = offset;
+
     return apiClient.get<SnapshotDTO>(
-      `${API_CONFIG.endpoints.snapshots}/${snapshotId}`
+      `${API_CONFIG.endpoints.snapshots}/${snapshotId}`,
+      Object.keys(params).length > 0 ? params : undefined
     );
   },
 
   /**
-   * Create a new snapshot
+   * Create a new snapshot (async mode - returns job ID for polling)
    */
-  async createSnapshot(snapshot: NewSnapshotDTO): Promise<SnapshotSummaryDTO> {
+  async createSnapshotAsync(snapshot: NewSnapshotDTO): Promise<JobCreatedDTO> {
+    return apiClient.post<JobCreatedDTO>(
+      `${API_CONFIG.endpoints.snapshots}?async=true`,
+      snapshot
+    );
+  },
+
+  /**
+   * Create a new snapshot (sync mode - blocks until complete)
+   * @deprecated Use createSnapshotAsync for large PV counts
+   */
+  async createSnapshotSync(snapshot: NewSnapshotDTO): Promise<SnapshotSummaryDTO> {
     return apiClient.post<SnapshotSummaryDTO>(
-      API_CONFIG.endpoints.snapshots,
+      `${API_CONFIG.endpoints.snapshots}?async=false`,
       snapshot
     );
   },

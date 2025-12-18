@@ -7,7 +7,6 @@ import {
   useRef,
   ReactNode,
 } from 'react';
-import { apiClient } from '../services/apiClient';
 import { API_CONFIG } from '../config/api';
 import { EpicsData } from '../types';
 
@@ -38,18 +37,27 @@ export function LivePVProvider({
 
   const subscribedPVs = useRef<Set<string>>(new Set());
   const pollIntervalRef = useRef<number | null>(null);
+  const pollIntervalMs = useRef(pollInterval);
 
-  // Poll for PV values
+  // Keep pollInterval ref updated
+  useEffect(() => {
+    pollIntervalMs.current = pollInterval;
+  }, [pollInterval]);
+
+  // Poll for PV values - stable function using refs
   const pollValues = useCallback(async () => {
     const pvNames = Array.from(subscribedPVs.current);
     if (pvNames.length === 0) return;
 
     try {
-      // Build query string with multiple pv_names params
-      const params = new URLSearchParams();
-      pvNames.forEach(pv => params.append('pv_names', pv));
-
-      const response = await fetch(`${API_CONFIG.endpoints.pvs}/live?${params.toString()}`);
+      // Use POST to avoid URL length limits with many PVs
+      const response = await fetch(`${API_CONFIG.endpoints.pvs}/live`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ pv_names: pvNames }),
+      });
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
@@ -58,17 +66,40 @@ export function LivePVProvider({
       const data = await response.json();
 
       if (data.errorCode === 0 && data.payload) {
-        const values = data.payload as Record<string, EpicsData>;
-        setLiveValues(prev => {
+        const rawValues = data.payload as Record<
+          string,
+          {
+            value: unknown;
+            connected: boolean;
+            updated_at: number;
+            status?: string;
+            severity?: number;
+            units?: string;
+          }
+        >;
+        const valueCount = Object.keys(rawValues).length;
+        console.log('[LivePV] Received', valueCount, 'values from backend');
+
+        // Transform backend format to EpicsData format
+        setLiveValues((prev) => {
           const next = new Map(prev);
-          Object.entries(values).forEach(([pvName, value]) => {
-            next.set(pvName, value);
+          Object.entries(rawValues).forEach(([pvName, rawValue]) => {
+            // Map backend fields to EpicsData fields
+            const epicsData: EpicsData = {
+              data: rawValue.value as EpicsData['data'],
+              severity: rawValue.severity,
+              units: rawValue.units,
+              timestamp: rawValue.updated_at ? new Date(rawValue.updated_at * 1000) : undefined,
+            };
+            next.set(pvName, epicsData);
           });
           return next;
         });
         setLastUpdate(new Date());
         setIsConnected(true);
         setError(null);
+      } else {
+        console.log('[LivePV] Response:', data);
       }
     } catch (err) {
       console.error('[LivePV] Poll error:', err);
@@ -77,60 +108,48 @@ export function LivePVProvider({
     }
   }, []);
 
-  // Start/stop polling based on subscriptions
-  useEffect(() => {
-    if (subscribedPVs.current.size > 0 && !pollIntervalRef.current) {
-      // Start polling
-      console.log('[LivePV] Starting polling for', subscribedPVs.current.size, 'PVs');
-      pollValues(); // Initial fetch
-      pollIntervalRef.current = window.setInterval(pollValues, pollInterval);
-    } else if (subscribedPVs.current.size === 0 && pollIntervalRef.current) {
-      // Stop polling
-      console.log('[LivePV] Stopping polling - no subscriptions');
-      window.clearInterval(pollIntervalRef.current);
-      pollIntervalRef.current = null;
-    }
+  // Stable subscribe function - doesn't change reference
+  const subscribeToPVs = useCallback(
+    (pvNames: string[]) => {
+      console.log('[LivePV] subscribeToPVs called with', pvNames.length, 'PVs');
+      let added = 0;
+      pvNames.forEach((pv) => {
+        if (!subscribedPVs.current.has(pv)) {
+          subscribedPVs.current.add(pv);
+          added++;
+        }
+      });
 
-    return () => {
-      if (pollIntervalRef.current) {
-        window.clearInterval(pollIntervalRef.current);
-        pollIntervalRef.current = null;
+      if (added > 0) {
+        console.log(
+          '[LivePV] Added',
+          added,
+          'new PV subscriptions, total:',
+          subscribedPVs.current.size
+        );
+        // Trigger immediate poll
+        pollValues();
+
+        // Start polling if not already running
+        if (!pollIntervalRef.current) {
+          pollIntervalRef.current = window.setInterval(pollValues, pollIntervalMs.current);
+        }
       }
-    };
-  }, [pollValues, pollInterval]);
+    },
+    [pollValues]
+  );
 
-  const subscribeToPVs = useCallback((pvNames: string[]) => {
-    console.log('[LivePV] subscribeToPVs called with', pvNames.length, 'PVs');
-    let added = 0;
-    pvNames.forEach(pv => {
-      if (!subscribedPVs.current.has(pv)) {
-        subscribedPVs.current.add(pv);
-        added++;
-      }
-    });
-
-    if (added > 0) {
-      console.log('[LivePV] Added', added, 'new PV subscriptions, total:', subscribedPVs.current.size);
-      // Trigger immediate poll
-      pollValues();
-
-      // Start polling if not already running
-      if (!pollIntervalRef.current) {
-        pollIntervalRef.current = window.setInterval(pollValues, pollInterval);
-      }
-    }
-  }, [pollValues, pollInterval]);
-
+  // Stable unsubscribe function - doesn't change reference
   const unsubscribeFromPVs = useCallback((pvNames: string[]) => {
     console.log('[LivePV] unsubscribeFromPVs called with', pvNames.length, 'PVs');
-    pvNames.forEach(pv => {
+    pvNames.forEach((pv) => {
       subscribedPVs.current.delete(pv);
     });
 
     // Remove from liveValues
-    setLiveValues(prev => {
+    setLiveValues((prev) => {
       const next = new Map(prev);
-      pvNames.forEach(pv => next.delete(pv));
+      pvNames.forEach((pv) => next.delete(pv));
       return next;
     });
 
@@ -139,6 +158,16 @@ export function LivePVProvider({
       window.clearInterval(pollIntervalRef.current);
       pollIntervalRef.current = null;
     }
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) {
+        window.clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+    };
   }, []);
 
   return (

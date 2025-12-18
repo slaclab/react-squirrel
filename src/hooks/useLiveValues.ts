@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useLivePVs } from '../contexts/LivePVContext';
 import { EpicsData } from '../types';
 
@@ -27,20 +27,47 @@ export function useLiveValues({
 }: UseLiveValuesOptions): UseLiveValuesReturn {
   const { subscribeToPVs, unsubscribeFromPVs, liveValues, isConnected } = useLivePVs();
 
-  // Memoize pvNames to prevent unnecessary re-subscriptions
-  const pvNamesKey = useMemo(() => [...pvNames].sort().join(','), [pvNames]);
+  // Store pvNames in a ref to avoid dependency issues
+  const pvNamesRef = useRef<string[]>(pvNames);
+  const subscribedRef = useRef(false);
 
-  // Subscribe to PVs when enabled and pvNames change
+  // Update ref when pvNames changes (but don't trigger re-subscription from this)
+  pvNamesRef.current = pvNames;
+
+  // Create a stable key for detecting actual changes
+  const pvNamesKey = useMemo(() => {
+    if (pvNames.length === 0) return 'empty';
+    const first = pvNames[0] || '';
+    const last = pvNames[pvNames.length - 1] || '';
+    return `${pvNames.length}:${first}:${last}`;
+  }, [pvNames]);
+
+  // Subscribe only once when enabled and pvNames are available
   useEffect(() => {
-    if (!enabled || pvNames.length === 0) return;
+    if (!enabled || pvNamesRef.current.length === 0) {
+      if (subscribedRef.current) {
+        // We were subscribed, now need to unsubscribe
+        subscribedRef.current = false;
+      }
+      return;
+    }
 
-    subscribeToPVs(pvNames);
+    if (!subscribedRef.current) {
+      // Subscribe for the first time
+      subscribeToPVs(pvNamesRef.current);
+      subscribedRef.current = true;
+    }
 
+    // Cleanup on unmount only
     return () => {
-      unsubscribeFromPVs(pvNames);
+      if (subscribedRef.current) {
+        unsubscribeFromPVs(pvNamesRef.current);
+        subscribedRef.current = false;
+      }
     };
+    // Only re-run when the key changes (meaning actual PV list changed) or enabled changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pvNamesKey, enabled, subscribeToPVs, unsubscribeFromPVs]);
+  }, [pvNamesKey, enabled]);
 
   // Filter liveValues to only include subscribed PVs
   const filteredValues = useMemo(() => {

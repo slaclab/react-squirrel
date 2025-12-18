@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { Box } from '@mui/material';
 import { VirtualTable, createPVColumns, PVRow } from './VirtualTable';
 import { useLiveValues } from '../hooks';
@@ -98,8 +98,23 @@ export const PVTable: React.FC<PVTableProps> = ({
     console.log('Row clicked:', row);
   };
 
+  // Handle selection change - map PVRow back to PV
+  const handleSelectionChange = useCallback(
+    (selectedRows: PVRow[]) => {
+      if (onSelectionChange) {
+        const selectedPVs = selectedRows
+          .map((row) => pvs.find((pv) => pv.uuid === row.id))
+          .filter((pv): pv is PV => pv !== undefined);
+        onSelectionChange(selectedPVs);
+      }
+    },
+    [onSelectionChange, pvs]
+  );
+
   return (
-    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%' }}>
+    <Box
+      sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%' }}
+    >
       <VirtualTable
         data={tableData}
         columns={columns}
@@ -109,6 +124,8 @@ export const PVTable: React.FC<PVTableProps> = ({
         emptyMessage={searchFilter ? 'No PVs match your search' : 'No PVs available'}
         estimateSize={41}
         overscan={10}
+        enableRowSelection={!!onSelectionChange}
+        onRowSelectionChange={handleSelectionChange}
       />
     </Box>
   );

@@ -5,6 +5,11 @@ export {
   type FilterState,
   type UseServerFiltersReturn,
 } from './useServerFilters';
+export {
+  useBufferedLiveData,
+  default as useBufferedLiveDataDefault,
+  type PVUpdate,
+} from './useBufferedLiveData';
 
 // Re-export query hooks
 export * from './queries';

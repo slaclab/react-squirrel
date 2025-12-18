@@ -9,7 +9,7 @@ export default defineConfig({
     proxy: {
       // All /v1 routes including WebSocket
       '/v1': {
-        target: 'http://localhost:8000',
+        target: 'http://localhost:8080',
         changeOrigin: true,
         ws: true,
         configure: (proxy) => {

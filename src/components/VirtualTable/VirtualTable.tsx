@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -6,15 +6,10 @@ import {
   flexRender,
   ColumnDef,
   SortingState,
+  RowSelectionState,
 } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import {
-  TableSortLabel,
-  Paper,
-  Box,
-  Typography,
-  CircularProgress,
-} from '@mui/material';
+import { TableSortLabel, Paper, Box, Typography, CircularProgress } from '@mui/material';
 
 interface VirtualTableProps<T> {
   data: T[];
@@ -45,10 +40,12 @@ export function VirtualTable<T>({
   onSortingChange,
   manualSorting = true,
   enableRowSelection = false,
+  onRowSelectionChange,
   getRowId,
   emptyMessage = 'No data available',
 }: VirtualTableProps<T>) {
   const parentRef = useRef<HTMLDivElement>(null);
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 
   const table = useReactTable({
     data,
@@ -59,7 +56,9 @@ export function VirtualTable<T>({
     enableRowSelection,
     state: {
       sorting: sorting || [],
+      rowSelection,
     },
+    onRowSelectionChange: setRowSelection,
     onSortingChange: onSortingChange
       ? (updater) => {
           const newSorting = typeof updater === 'function' ? updater(sorting || []) : updater;
@@ -68,6 +67,14 @@ export function VirtualTable<T>({
       : undefined,
     getRowId: getRowId ? (row) => getRowId(row) : undefined,
   });
+
+  // Notify parent of selection changes
+  useEffect(() => {
+    if (onRowSelectionChange) {
+      const selectedRows = table.getSelectedRowModel().rows.map((row) => row.original);
+      onRowSelectionChange(selectedRows);
+    }
+  }, [rowSelection, onRowSelectionChange, table]);
 
   const { rows } = table.getRowModel();
 

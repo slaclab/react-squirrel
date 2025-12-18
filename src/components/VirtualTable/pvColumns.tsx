@@ -1,13 +1,7 @@
 import { createColumnHelper, ColumnDef } from '@tanstack/react-table';
 import { Checkbox } from '@mui/material';
 import { EpicsData, Severity } from '../../types';
-import {
-  SeverityIcon,
-  EpicsValueCell,
-  LiveValueCell,
-  PVNameCell,
-  DeviceCell,
-} from './ValueCells';
+import { SeverityIcon, EpicsValueCell, LiveValueCell, PVNameCell, DeviceCell } from './ValueCells';
 
 /**
  * Row data structure for PV tables
@@ -35,11 +29,7 @@ export function createPVColumns(options?: {
   showLiveValues?: boolean;
   showConfig?: boolean;
 }): ColumnDef<PVRow, unknown>[] {
-  const {
-    enableSelection = true,
-    showLiveValues = true,
-    showConfig = true,
-  } = options || {};
+  const { enableSelection = true, showLiveValues = true, showConfig = true } = options || {};
 
   const columns: ColumnDef<PVRow, unknown>[] = [];
 
@@ -101,7 +91,7 @@ export function createPVColumns(options?: {
   // Saved Setpoint column
   columns.push(
     columnHelper.accessor('savedSetpoint', {
-      header: 'Saved Value',
+      header: 'Saved Setpoint',
       cell: ({ getValue }) => <EpicsValueCell value={getValue()} />,
       size: 100,
       enableSorting: false,
@@ -112,7 +102,7 @@ export function createPVColumns(options?: {
   if (showLiveValues) {
     columns.push(
       columnHelper.accessor('liveSetpoint', {
-        header: 'Live Value',
+        header: 'Live Setpoint',
         cell: ({ getValue, row }) => (
           <LiveValueCell
             value={getValue()}
@@ -143,18 +133,6 @@ export function createPVColumns(options?: {
         header: 'Live Readback',
         cell: ({ getValue }) => <LiveValueCell value={getValue()} />,
         size: 100,
-        enableSorting: false,
-      }) as ColumnDef<PVRow, unknown>
-    );
-  }
-
-  // Config column
-  if (showConfig) {
-    columns.push(
-      columnHelper.accessor('config', {
-        header: 'CON',
-        cell: ({ getValue }) => getValue() || '--',
-        size: 60,
         enableSorting: false,
       }) as ColumnDef<PVRow, unknown>
     );

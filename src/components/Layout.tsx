@@ -4,6 +4,7 @@ import { Help as HelpIcon, BugReport as BugReportIcon } from '@mui/icons-materia
 import { Sidebar } from './Sidebar';
 import { UserAvatar } from './UserAvatar';
 import { CreateSnapshotDialog } from './CreateSnapshotDialog';
+import { LiveDataWarningBanner } from './LiveDataWarningBanner';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -81,6 +82,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             <UserAvatar userName="Test User" userInitials="T" isAdmin={true} />
           </Toolbar>
         </AppBar>
+
+        {/* Warning banner - shows when PV monitor is dead */}
+        <LiveDataWarningBanner />
 
         {/* Page Content */}
         <Box

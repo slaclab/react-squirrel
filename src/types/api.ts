@@ -71,14 +71,23 @@ export interface EpicsValueDTO {
   lower_ctrl_limit?: number;
 }
 
+export interface TagInfoDTO {
+  id: string;
+  name: string;
+  groupName: string;
+}
+
 export interface PVValueDTO {
   pvId: string;
   pvName: string;
+  setpointName?: string | null; // Actual setpoint PV address
+  readbackName?: string | null; // Actual readback PV address
   setpointValue?: EpicsValueDTO | null;
   readbackValue?: EpicsValueDTO | null;
   status?: number;
   severity?: number;
   timestamp?: string;
+  tags?: TagInfoDTO[];
 }
 
 export interface NewSnapshotDTO {

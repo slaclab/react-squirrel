@@ -1,12 +1,11 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { useQueryClient } from '@tanstack/react-query';
 import { Box, CircularProgress, Typography, Button } from '@mui/material';
 import { SnapshotDetailsPage } from '../pages';
 import { Snapshot, PV, Severity, Status } from '../types';
-import { useSnapshot } from '../hooks';
+import { useSnapshot, snapshotKeys } from '../hooks';
 import { SnapshotDTO, PVValueDTO } from '../types/api';
-
-const PAGE_SIZE = 500;
 
 // Map severity number from backend to Severity enum
 const mapSeverity = (severity?: number): Severity => {
@@ -32,15 +31,57 @@ const mapStatus = (status?: number): Status => {
 
 // Convert SnapshotDTO from backend to Snapshot for UI
 const mapSnapshotDTOtoSnapshot = (dto: SnapshotDTO): Snapshot => {
+  // Debug: log first PV values to see structure
+  if (dto.pvValues.length > 0) {
+    console.log('[Snapshot] First PV value from backend:', dto.pvValues[0]);
+    // Find a PV with setpoint value for debugging
+    const withSetpoint = dto.pvValues.find((pv) => pv.setpointValue !== null);
+    const withReadback = dto.pvValues.find((pv) => pv.readbackValue !== null);
+    if (withSetpoint) {
+      console.log(
+        '[Snapshot] Sample PV with setpoint:',
+        withSetpoint.pvName,
+        withSetpoint.setpointValue
+      );
+    }
+    if (withReadback) {
+      console.log(
+        '[Snapshot] Sample PV with readback:',
+        withReadback.pvName,
+        withReadback.readbackValue
+      );
+    }
+    // Count how many have values
+    const setpointCount = dto.pvValues.filter((pv) => pv.setpointValue !== null).length;
+    const readbackCount = dto.pvValues.filter((pv) => pv.readbackValue !== null).length;
+    console.log(
+      `[Snapshot] Values: ${setpointCount} with setpoint, ${readbackCount} with readback out of ${dto.pvValues.length} total`
+    );
+  }
+
   const pvs: PV[] = dto.pvValues.map((pvValue: PVValueDTO) => {
     const setpoint = pvValue.setpointValue;
     const readback = pvValue.readbackValue;
+    // Use actual addresses from backend, fallback to pvName for setpoint
+    const setpointAddr = pvValue.setpointName || pvValue.pvName;
+    const readbackAddr = pvValue.readbackName || null;
+
+    // Convert tags array to {groupName: {tagId: tagName}} format for filtering
+    const tagsMap: Record<string, Record<string, string>> = {};
+    if (pvValue.tags) {
+      pvValue.tags.forEach((tag) => {
+        if (!tagsMap[tag.groupName]) {
+          tagsMap[tag.groupName] = {};
+        }
+        tagsMap[tag.groupName][tag.id] = tag.name;
+      });
+    }
 
     return {
       uuid: pvValue.pvId,
       description: '',
-      setpoint: pvValue.pvName,
-      readback: `${pvValue.pvName}:RBV`,
+      setpoint: setpointAddr,
+      readback: readbackAddr || '', // Empty string if no readback address
       config: '',
       setpoint_data: {
         data: setpoint?.value,
@@ -61,7 +102,7 @@ const mapSnapshotDTOtoSnapshot = (dto: SnapshotDTO): Snapshot => {
         timestamp: new Date(),
       },
       device: pvValue.pvName.split(':')[0] || 'Unknown',
-      tags: {},
+      tags: tagsMap,
       creation_time: new Date(dto.createdDate),
     };
   });
@@ -91,31 +132,32 @@ export const Route = createFileRoute('/snapshot-details')({
 
 function SnapshotDetails() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { id } = Route.useSearch();
-  const [page, setPage] = useState(0);
 
-  // Use React Query for data fetching with pagination
-  const { data: snapshotDTO, isLoading, error, isFetching } = useSnapshot(id || '', {
-    limit: PAGE_SIZE,
-    offset: page * PAGE_SIZE,
-  });
+  // Fetch all PVs (no pagination)
+  const { data: snapshotDTO, isLoading, error } = useSnapshot(id || '');
 
-  const handleBack = useCallback(() => {
+  const handleBack = useCallback(async () => {
+    // Refetch the snapshots list before navigating back to ensure new snapshots are visible
+    await queryClient.refetchQueries({ queryKey: snapshotKeys.lists() });
     navigate({ to: '/snapshots' });
-  }, [navigate]);
+  }, [navigate, queryClient]);
 
   const handleRestore = useCallback((pvs: PV[]) => {
     console.log('Restoring PVs:', pvs);
     alert(`Restoring ${pvs.length} PV(s) - This feature is not yet implemented`);
   }, []);
 
-  const handleCompare = useCallback((currentSnapshot: Snapshot, comparisonSnapshot: Snapshot) => {
-    console.log('Comparing snapshots:', currentSnapshot, comparisonSnapshot);
-  }, []);
-
-  const handlePageChange = useCallback((newPage: number) => {
-    setPage(newPage);
-  }, []);
+  const handleCompare = useCallback(
+    (comparisonSnapshotId: string) => {
+      navigate({
+        to: '/comparison',
+        search: { mainId: id, compId: comparisonSnapshotId },
+      });
+    },
+    [navigate, id]
+  );
 
   // Memoize the snapshot transformation
   const snapshot = useMemo(() => {
@@ -123,13 +165,18 @@ function SnapshotDetails() {
     return mapSnapshotDTOtoSnapshot(snapshotDTO);
   }, [snapshotDTO]);
 
-  // Calculate pagination info
-  const totalCount = snapshotDTO?.pvCount || 0;
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
-
   if (!id) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100%', p: 4 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100%',
+          p: 4,
+        }}
+      >
         <Typography variant="h6" color="error" gutterBottom>
           No snapshot ID provided
         </Typography>
@@ -142,7 +189,15 @@ function SnapshotDetails() {
 
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', p: 4 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100%',
+          p: 4,
+        }}
+      >
         <CircularProgress />
       </Box>
     );
@@ -150,7 +205,16 @@ function SnapshotDetails() {
 
   if (error || !snapshot) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100%', p: 4 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100%',
+          p: 4,
+        }}
+      >
         <Typography variant="h6" color="error" gutterBottom>
           {error instanceof Error ? error.message : 'Snapshot not found'}
         </Typography>
@@ -167,14 +231,6 @@ function SnapshotDetails() {
       onBack={handleBack}
       onRestore={handleRestore}
       onCompare={handleCompare}
-      pagination={{
-        page,
-        pageSize: PAGE_SIZE,
-        totalCount,
-        totalPages,
-        onPageChange: handlePageChange,
-        isLoading: isFetching,
-      }}
     />
   );
 }

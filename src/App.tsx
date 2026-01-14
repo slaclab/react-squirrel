@@ -141,8 +141,8 @@ function App() {
     alert(`Restoring ${pvs.length} PV(s)`);
   };
 
-  const handleCompare = (snapshot: Snapshot, comparisonSnapshot: Snapshot) => {
-    console.log('Comparing snapshots:', snapshot, comparisonSnapshot);
+  const handleCompare = (comparisonSnapshotId: string) => {
+    console.log('Comparing with snapshot ID:', comparisonSnapshotId);
   };
 
   return (

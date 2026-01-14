@@ -29,7 +29,7 @@ export function createPVColumns(options?: {
   showLiveValues?: boolean;
   showConfig?: boolean;
 }): ColumnDef<PVRow, unknown>[] {
-  const { enableSelection = true, showLiveValues = true, showConfig = true } = options || {};
+  const { enableSelection = true, showLiveValues = true } = options || {};
 
   const columns: ColumnDef<PVRow, unknown>[] = [];
 

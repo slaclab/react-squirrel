@@ -4,6 +4,7 @@ import { PVBrowserPage } from '../pages';
 import { PV, Severity, Status } from '../types';
 import { pvService, tagsService } from '../services';
 import { ParsedCSVRow, createTagMapping } from '../utils/csvParser';
+import { useAdminMode } from '../contexts/AdminModeContext';
 
 export const Route = createFileRoute('/pv-browser')({
   component: PVBrowser,
@@ -22,6 +23,7 @@ function PVBrowser() {
   const [isLoadingAll, setIsLoadingAll] = useState(false);
   const [tagGroupMap, setTagGroupMap] = useState<TagGroupMap>(new Map());
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const { isAdminMode } = useAdminMode();
 
   const PAGE_SIZE = 100; // Load 100 PVs at a time
 
@@ -144,7 +146,9 @@ function PVBrowser() {
         token = response.continuationToken;
         pageCount++;
 
-        console.log(`Loaded page ${pageCount}: ${response.results.length} PVs (total: ${allPVs.length})`);
+        console.log(
+          `Loaded page ${pageCount}: ${response.results.length} PVs (total: ${allPVs.length})`
+        );
       } while (token);
 
       setPVs(allPVs);
@@ -330,12 +334,20 @@ function PVBrowser() {
         onImportPVs={handleImportPVs}
         onDeletePV={handleDeletePV}
         onPVClick={handlePVClick}
-        isAdmin={true}
+        isAdmin={isAdminMode}
         searchText={searchQuery}
         onSearchChange={setSearchQuery}
       />
       {hasMore && (
-        <div style={{ padding: '20px', textAlign: 'center', display: 'flex', gap: '10px', justifyContent: 'center' }}>
+        <div
+          style={{
+            padding: '20px',
+            textAlign: 'center',
+            display: 'flex',
+            gap: '10px',
+            justifyContent: 'center',
+          }}
+        >
           <button
             onClick={loadMorePVs}
             disabled={isLoadingMore || isLoadingAll}

@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useState, useEffect } from 'react';
 import { TagPage } from '../pages';
 import { tagsService } from '../services';
+import { useAdminMode } from '../contexts/AdminModeContext';
 
 interface TagWithId {
   id: string;
@@ -24,6 +25,7 @@ function Tags() {
   const [tagGroups, setTagGroups] = useState<TagGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { isAdminMode } = useAdminMode();
 
   useEffect(() => {
     fetchTagGroups();
@@ -101,7 +103,9 @@ function Tags() {
       await fetchTagGroups(); // Refresh the list
     } catch (err) {
       console.error('Failed to delete tag group:', err);
-      alert('Failed to delete tag group: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      alert(
+        'Failed to delete tag group: ' + (err instanceof Error ? err.message : 'Unknown error')
+      );
     }
   };
 
@@ -118,12 +122,12 @@ function Tags() {
   const handleDeleteTag = async (groupId: string, tagId: string) => {
     try {
       // Find the tag ID from the tag name
-      const group = tagGroups.find(g => g.id === groupId);
+      const group = tagGroups.find((g) => g.id === groupId);
       if (!group || !group.tagsWithIds) {
         throw new Error('Tag group not found');
       }
 
-      const tag = group.tagsWithIds.find(t => t.name === tagId);
+      const tag = group.tagsWithIds.find((t) => t.name === tagId);
       if (!tag) {
         throw new Error('Tag not found');
       }
@@ -147,7 +151,7 @@ function Tags() {
   return (
     <TagPage
       tagGroups={tagGroups}
-      isAdmin={true}
+      isAdmin={isAdminMode}
       onAddGroup={handleAddGroup}
       onEditGroup={handleEditGroup}
       onDeleteGroup={handleDeleteGroup}

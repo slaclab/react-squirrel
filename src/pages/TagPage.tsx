@@ -22,7 +22,7 @@ import {
   ListItemText,
   Chip,
 } from '@mui/material';
-import { Add, Delete, Edit } from '@mui/icons-material';
+import { Add, Delete } from '@mui/icons-material';
 
 interface TagGroup {
   id: string;

@@ -12,20 +12,58 @@ import {
   Typography,
   TextField,
   InputAdornment,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Button,
 } from '@mui/material';
-import { Search } from '@mui/icons-material';
+import { Search, Delete } from '@mui/icons-material';
 import { Snapshot } from '../types';
 
 interface SnapshotListPageProps {
   snapshots: Snapshot[];
   onSnapshotClick: (snapshot: Snapshot) => void;
+  onDeleteSnapshot?: (snapshotId: string) => Promise<void>;
 }
 
 export const SnapshotListPage: React.FC<SnapshotListPageProps> = ({
   snapshots,
   onSnapshotClick,
+  onDeleteSnapshot,
 }) => {
   const [searchText, setSearchText] = useState('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [snapshotToDelete, setSnapshotToDelete] = useState<Snapshot | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteClick = (e: React.MouseEvent, snapshot: Snapshot) => {
+    e.stopPropagation(); // Prevent row click
+    setSnapshotToDelete(snapshot);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!snapshotToDelete || !onDeleteSnapshot) return;
+
+    setIsDeleting(true);
+    try {
+      await onDeleteSnapshot(snapshotToDelete.uuid);
+      setDeleteDialogOpen(false);
+      setSnapshotToDelete(null);
+    } catch (error) {
+      console.error('Failed to delete snapshot:', error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+    setSnapshotToDelete(null);
+  };
 
   const filteredSnapshots = useMemo(() => {
     if (!searchText) return snapshots;
@@ -96,6 +134,13 @@ export const SnapshotListPage: React.FC<SnapshotListPageProps> = ({
                   PV Count
                 </Typography>
               </TableCell>
+              {onDeleteSnapshot && (
+                <TableCell align="center" sx={{ width: 60 }}>
+                  <Typography variant="subtitle2" fontWeight="bold">
+                    Actions
+                  </Typography>
+                </TableCell>
+              )}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -120,8 +165,20 @@ export const SnapshotListPage: React.FC<SnapshotListPageProps> = ({
                   <Typography variant="body2">{formatTimestamp(snapshot.creation_time)}</Typography>
                 </TableCell>
                 <TableCell align="right">
-                  <Typography variant="body2">{snapshot.pvs.length}</Typography>
+                  <Typography variant="body2">{snapshot.pvCount ?? snapshot.pvs.length}</Typography>
                 </TableCell>
+                {onDeleteSnapshot && (
+                  <TableCell align="center">
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={(e) => handleDeleteClick(e, snapshot)}
+                      title="Delete snapshot"
+                    >
+                      <Delete fontSize="small" />
+                    </IconButton>
+                  </TableCell>
+                )}
               </TableRow>
             ))}
           </TableBody>
@@ -134,6 +191,30 @@ export const SnapshotListPage: React.FC<SnapshotListPageProps> = ({
           </Box>
         )}
       </TableContainer>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onClose={handleDeleteCancel}>
+        <DialogTitle>Delete Snapshot</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete the snapshot "{snapshotToDelete?.title}"?
+            This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDeleteCancel} disabled={isDeleting}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            color="error"
+            variant="contained"
+            disabled={isDeleting}
+          >
+            {isDeleting ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

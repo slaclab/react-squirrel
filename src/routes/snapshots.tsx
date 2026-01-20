@@ -1,8 +1,7 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useState, useEffect } from 'react';
 import { SnapshotListPage } from '../pages';
 import { Snapshot } from '../types';
-import { snapshotService } from '../services';
+import { useSnapshots, useDeleteSnapshot } from '../hooks';
 
 export const Route = createFileRoute('/snapshots')({
   component: Snapshots,
@@ -10,50 +9,40 @@ export const Route = createFileRoute('/snapshots')({
 
 function Snapshots() {
   const navigate = useNavigate();
-  const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: snapshots, isLoading, error } = useSnapshots();
+  const deleteSnapshotMutation = useDeleteSnapshot();
 
-  useEffect(() => {
-    const fetchSnapshots = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await snapshotService.findSnapshots();
-
-        // Convert SnapshotSummaryDTO to Snapshot format
-        const formattedSnapshots: Snapshot[] = data.map((snapshot) => ({
-          uuid: snapshot.id,
-          title: snapshot.title,
-          description: snapshot.comment || '',
-          pvs: [], // Summary doesn't include PV details
-          creation_time: new Date(snapshot.createdDate),
-        }));
-
-        setSnapshots(formattedSnapshots);
-      } catch (err) {
-        console.error('Failed to fetch snapshots:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load snapshots');
-        setSnapshots([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchSnapshots();
-  }, []);
+  // Convert SnapshotSummaryDTO to Snapshot format for the UI
+  const formattedSnapshots: Snapshot[] = (snapshots || []).map((snapshot) => ({
+    uuid: snapshot.id,
+    title: snapshot.title,
+    description: snapshot.comment || '',
+    pvs: [], // Summary doesn't include PV details
+    pvCount: snapshot.pvCount || 0,
+    creation_time: new Date(snapshot.createdDate),
+  }));
 
   const handleSnapshotClick = (snapshot: Snapshot) => {
     navigate({ to: '/snapshot-details', search: { id: snapshot.uuid } });
   };
 
-  if (loading) {
+  const handleDeleteSnapshot = async (snapshotId: string) => {
+    await deleteSnapshotMutation.mutateAsync({ snapshotId });
+  };
+
+  if (isLoading) {
     return <div>Loading snapshots...</div>;
   }
 
   if (error) {
-    return <div>Error: {error}</div>;
+    return <div>Error: {error instanceof Error ? error.message : 'Failed to load snapshots'}</div>;
   }
 
-  return <SnapshotListPage snapshots={snapshots} onSnapshotClick={handleSnapshotClick} />;
+  return (
+    <SnapshotListPage
+      snapshots={formattedSnapshots}
+      onSnapshotClick={handleSnapshotClick}
+      onDeleteSnapshot={handleDeleteSnapshot}
+    />
+  );
 }

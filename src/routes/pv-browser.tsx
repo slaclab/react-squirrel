@@ -19,6 +19,7 @@ function PVBrowser() {
   const [continuationToken, setContinuationToken] = useState<string | undefined>(undefined);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isLoadingAll, setIsLoadingAll] = useState(false);
   const [tagGroupMap, setTagGroupMap] = useState<TagGroupMap>(new Map());
   const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -115,6 +116,51 @@ function PVBrowser() {
       console.error('Failed to load more PVs:', err);
     } finally {
       setIsLoadingMore(false);
+    }
+  };
+
+  const loadAllPVs = async () => {
+    if (isLoadingAll) return;
+
+    const startTime = performance.now();
+    console.log('Starting to load all PVs...');
+
+    try {
+      setIsLoadingAll(true);
+      let allPVs: PV[] = [];
+      let token: string | undefined = undefined;
+      let pageCount = 0;
+
+      // Load all pages
+      do {
+        const response = await pvService.findPVsPaged({
+          pvName: searchQuery,
+          continuationToken: token,
+          pageSize: PAGE_SIZE,
+        });
+
+        const formattedPVs = formatPVs(response.results, tagGroupMap);
+        allPVs = [...allPVs, ...formattedPVs];
+        token = response.continuationToken;
+        pageCount++;
+
+        console.log(`Loaded page ${pageCount}: ${response.results.length} PVs (total: ${allPVs.length})`);
+      } while (token);
+
+      setPVs(allPVs);
+      setContinuationToken(undefined);
+      setHasMore(false);
+
+      const endTime = performance.now();
+      const duration = ((endTime - startTime) / 1000).toFixed(2);
+      console.log(`Finished loading all PVs!`);
+      console.log(`Total PVs loaded: ${allPVs.length}`);
+      console.log(`Total pages: ${pageCount}`);
+      console.log(`Time taken: ${duration} seconds`);
+    } catch (err) {
+      console.error('Failed to load all PVs:', err);
+    } finally {
+      setIsLoadingAll(false);
     }
   };
 
@@ -289,21 +335,36 @@ function PVBrowser() {
         onSearchChange={setSearchQuery}
       />
       {hasMore && (
-        <div style={{ padding: '20px', textAlign: 'center' }}>
+        <div style={{ padding: '20px', textAlign: 'center', display: 'flex', gap: '10px', justifyContent: 'center' }}>
           <button
             onClick={loadMorePVs}
-            disabled={isLoadingMore}
+            disabled={isLoadingMore || isLoadingAll}
             style={{
               padding: '10px 20px',
               fontSize: '16px',
-              cursor: isLoadingMore ? 'not-allowed' : 'pointer',
-              backgroundColor: isLoadingMore ? '#ccc' : '#0066cc',
+              cursor: isLoadingMore || isLoadingAll ? 'not-allowed' : 'pointer',
+              backgroundColor: isLoadingMore || isLoadingAll ? '#ccc' : '#0066cc',
               color: 'white',
               border: 'none',
               borderRadius: '4px',
             }}
           >
             {isLoadingMore ? 'Loading...' : `Load More (${pvs.length} loaded)`}
+          </button>
+          <button
+            onClick={loadAllPVs}
+            disabled={isLoadingAll || isLoadingMore}
+            style={{
+              padding: '10px 20px',
+              fontSize: '16px',
+              cursor: isLoadingAll || isLoadingMore ? 'not-allowed' : 'pointer',
+              backgroundColor: isLoadingAll || isLoadingMore ? '#ccc' : '#cc6600',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+            }}
+          >
+            {isLoadingAll ? 'Loading All...' : 'Load All PVs'}
           </button>
         </div>
       )}

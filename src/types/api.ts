@@ -3,37 +3,43 @@
  */
 
 /**
- * PV Element DTOs
+ * PV Element DTOs - matches backend app/schemas/pv.py
  */
 export interface PVElementDTO {
   id: string;
-  setpointAddress: string;
-  readbackAddress?: string;
-  description?: string;
-  absTolerance?: number;
-  relTolerance?: number;
-  readOnly?: boolean;
-  tags?: string[];
+  setpointAddress: string | null;
+  readbackAddress?: string | null;
+  configAddress?: string | null;
+  device?: string | null;
+  description?: string | null;
+  absTolerance: number;
+  relTolerance: number;
+  readOnly: boolean;
+  tags: TagDTO[];
   createdDate: string;
-  childType?: string;
-  createdBy?: string;
-  lastModifiedDate?: string;
-  lastModifiedBy?: string;
+  createdBy?: string | null;
+  lastModifiedDate: string;
+  lastModifiedBy?: string | null;
 }
 
 export interface NewPVElementDTO {
-  setpointAddress: string;
-  readbackAddress?: string;
-  description?: string;
+  setpointAddress?: string | null;
+  readbackAddress?: string | null;
+  configAddress?: string | null;
+  device?: string | null;
+  description?: string | null;
   absTolerance?: number;
   relTolerance?: number;
-  tags?: string[];
+  readOnly?: boolean;
+  tags?: string[]; // Tag IDs
 }
 
 export interface UpdatePVElementDTO {
-  description?: string;
-  absTolerance?: number;
-  relTolerance?: number;
+  description?: string | null;
+  absTolerance?: number | null;
+  relTolerance?: number | null;
+  readOnly?: boolean | null;
+  tags?: string[] | null; // Tag IDs
 }
 
 /**
@@ -46,6 +52,7 @@ export interface SnapshotSummaryDTO {
   tags?: string[];
   createdDate: string;
   createdBy: string;
+  pvCount?: number;
   metadataPVs?: Record<string, any>;
 }
 
@@ -53,13 +60,34 @@ export interface SnapshotDTO extends SnapshotSummaryDTO {
   pvValues: PVValueDTO[];
 }
 
-export interface PVValueDTO {
-  pvId: string;
-  pvName: string;
+export interface EpicsValueDTO {
   value: any;
   status?: number;
   severity?: number;
   timestamp?: string;
+  units?: string;
+  precision?: number;
+  upper_ctrl_limit?: number;
+  lower_ctrl_limit?: number;
+}
+
+export interface TagInfoDTO {
+  id: string;
+  name: string;
+  groupName: string;
+}
+
+export interface PVValueDTO {
+  pvId: string;
+  pvName: string;
+  setpointName?: string | null; // Actual setpoint PV address
+  readbackName?: string | null; // Actual readback PV address
+  setpointValue?: EpicsValueDTO | null;
+  readbackValue?: EpicsValueDTO | null;
+  status?: number;
+  severity?: number;
+  timestamp?: string;
+  tags?: TagInfoDTO[];
 }
 
 export interface NewSnapshotDTO {
@@ -122,4 +150,25 @@ export interface UpdateTagsGroupsDTO {
 export interface FindParameter {
   title?: string;
   tags?: string[];
+}
+
+/**
+ * Job DTOs for async task tracking
+ */
+export interface JobDTO {
+  id: string;
+  type: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  progress: number;
+  message?: string;
+  resultId?: string;
+  error?: string;
+  createdAt: string;
+  startedAt?: string;
+  completedAt?: string;
+}
+
+export interface JobCreatedDTO {
+  jobId: string;
+  message: string;
 }

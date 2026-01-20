@@ -1,167 +1,134 @@
-import React, { useState, useMemo } from 'react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Checkbox,
-  Paper,
-  Typography,
-  Box,
-} from '@mui/material';
-import {
-  CheckCircle,
-  Warning,
-  Error as ErrorIcon,
-  Cancel,
-} from '@mui/icons-material';
-import { PV, PVHeader, PV_HEADER_STRINGS, Severity } from '../types';
+import React, { useMemo, useCallback } from 'react';
+import { Box } from '@mui/material';
+import { VirtualTable, createPVColumns, PVRow } from './VirtualTable';
+import { useLiveValues } from '../hooks';
+import { checkTolerance } from '../utils/tolerance';
+import { PV } from '../types';
 
 interface PVTableProps {
   pvs: PV[];
-  searchFilter: string;
+  searchFilter?: string;
   onSelectionChange?: (selectedPVs: PV[]) => void;
+  showLiveValues?: boolean;
+  isLoading?: boolean;
 }
 
-const getSeverityIcon = (severity?: Severity): React.ReactNode => {
-  switch (severity) {
-    case Severity.NO_ALARM:
-      return <CheckCircle fontSize="small" sx={{ color: 'success.main' }} />;
-    case Severity.MINOR:
-      return <Warning fontSize="small" sx={{ color: 'warning.main' }} />;
-    case Severity.MAJOR:
-      return <ErrorIcon fontSize="small" sx={{ color: 'error.main' }} />;
-    case Severity.INVALID:
-      return <Cancel fontSize="small" sx={{ color: 'text.disabled' }} />;
-    default:
-      return <Typography variant="body2">--</Typography>;
-  }
-};
-
-export const PVTable: React.FC<PVTableProps> = ({ pvs, searchFilter, onSelectionChange }) => {
-  const [selectedPVs, setSelectedPVs] = useState<Set<string>>(new Set());
-  const [selectAll, setSelectAll] = useState(false);
-
-  // Filter PVs based on search
+/**
+ * PV Table component with virtualization and live value support
+ */
+export const PVTable: React.FC<PVTableProps> = ({
+  pvs,
+  searchFilter = '',
+  onSelectionChange,
+  showLiveValues = true,
+  isLoading = false,
+}) => {
+  // Filter PVs based on search (client-side filtering for now)
   const filteredPVs = useMemo(() => {
     if (!searchFilter) return pvs;
 
     const lowerFilter = searchFilter.toLowerCase();
-    return pvs.filter(pv =>
-      pv.setpoint.toLowerCase().includes(lowerFilter) ||
-      pv.device.toLowerCase().includes(lowerFilter) ||
-      pv.description.toLowerCase().includes(lowerFilter)
+    return pvs.filter(
+      (pv) =>
+        pv.setpoint.toLowerCase().includes(lowerFilter) ||
+        pv.device.toLowerCase().includes(lowerFilter) ||
+        pv.description.toLowerCase().includes(lowerFilter)
     );
   }, [pvs, searchFilter]);
 
-  const handleCheckboxChange = (pvUuid: string) => {
-    const newSelected = new Set(selectedPVs);
-    if (newSelected.has(pvUuid)) {
-      newSelected.delete(pvUuid);
-    } else {
-      newSelected.add(pvUuid);
-    }
-    setSelectedPVs(newSelected);
+  // Get PV names for live value subscription
+  const pvNames = useMemo(() => {
+    if (!showLiveValues) return [];
+    const names: string[] = [];
+    filteredPVs.forEach((pv) => {
+      if (pv.setpoint) names.push(pv.setpoint);
+      if (pv.readback) names.push(pv.readback);
+    });
+    return names;
+  }, [filteredPVs, showLiveValues]);
 
-    if (onSelectionChange) {
-      const selected = pvs.filter(pv => newSelected.has(pv.uuid));
-      onSelectionChange(selected);
-    }
+  // Subscribe to live values - updates every 1 second if there are changes
+  const { liveValues } = useLiveValues({
+    pvNames,
+    throttleMs: 1000,
+    enabled: showLiveValues,
+  });
+
+  // Transform PVs to table row format
+  const tableData: PVRow[] = useMemo(() => {
+    return filteredPVs.map((pv) => {
+      const liveSetpoint = liveValues.get(pv.setpoint) || null;
+      const liveReadback = liveValues.get(pv.readback) || null;
+
+      const withinTolerance = checkTolerance(
+        pv.setpoint_data?.data as number | string | null | undefined,
+        liveSetpoint?.data as number | string | null | undefined,
+        pv.abs_tolerance ?? 0,
+        pv.rel_tolerance ?? 0
+      );
+
+      return {
+        id: pv.uuid,
+        device: pv.device,
+        pvName: pv.setpoint,
+        savedSetpoint: pv.setpoint_data || null,
+        liveSetpoint: showLiveValues ? liveSetpoint : null,
+        savedReadback: pv.readback_data || null,
+        liveReadback: showLiveValues ? liveReadback : null,
+        severity: pv.setpoint_data?.severity,
+        withinTolerance,
+        config: pv.config,
+      };
+    });
+  }, [filteredPVs, liveValues, showLiveValues]);
+
+  // Column configuration
+  const columns = useMemo(
+    () =>
+      createPVColumns({
+        enableSelection: !!onSelectionChange,
+        showLiveValues,
+        showConfig: true,
+      }),
+    [onSelectionChange, showLiveValues]
+  );
+
+  const handleRowClick = (row: PVRow) => {
+    // Could be used for opening PV details
+    console.log('Row clicked:', row);
   };
 
-  const handleSelectAll = () => {
-    if (selectAll) {
-      setSelectedPVs(new Set());
+  // Handle selection change - map PVRow back to PV
+  const handleSelectionChange = useCallback(
+    (selectedRows: PVRow[]) => {
       if (onSelectionChange) {
-        onSelectionChange([]);
+        const selectedPVs = selectedRows
+          .map((row) => pvs.find((pv) => pv.uuid === row.id))
+          .filter((pv): pv is PV => pv !== undefined);
+        onSelectionChange(selectedPVs);
       }
-    } else {
-      const allUuids = new Set(filteredPVs.map(pv => pv.uuid));
-      setSelectedPVs(allUuids);
-      if (onSelectionChange) {
-        onSelectionChange(filteredPVs);
-      }
-    }
-    setSelectAll(!selectAll);
-  };
-
-  const formatValue = (value: any): string => {
-    if (value === null || value === undefined) return '--';
-    if (typeof value === 'number') return value.toFixed(3);
-    return String(value);
-  };
+    },
+    [onSelectionChange, pvs]
+  );
 
   return (
-    <TableContainer component={Paper} sx={{ flex: 1, overflow: 'auto' }}>
-      <Table size="small" stickyHeader>
-        <TableHead>
-          <TableRow>
-            <TableCell padding="checkbox">
-              <Checkbox checked={selectAll} onChange={handleSelectAll} size="small" />
-            </TableCell>
-            <TableCell align="center" sx={{ width: 50 }}>
-              {PV_HEADER_STRINGS[PVHeader.SEVERITY]}
-            </TableCell>
-            <TableCell sx={{ width: 120 }}>{PV_HEADER_STRINGS[PVHeader.DEVICE]}</TableCell>
-            <TableCell sx={{ minWidth: 200, fontFamily: 'monospace' }}>
-              {PV_HEADER_STRINGS[PVHeader.PV]}
-            </TableCell>
-            <TableCell align="right" sx={{ minWidth: 100 }}>
-              {PV_HEADER_STRINGS[PVHeader.SETPOINT]}
-            </TableCell>
-            <TableCell align="right" sx={{ minWidth: 100 }}>
-              {PV_HEADER_STRINGS[PVHeader.LIVE_SETPOINT]}
-            </TableCell>
-            <TableCell align="right" sx={{ minWidth: 100 }}>
-              {PV_HEADER_STRINGS[PVHeader.READBACK]}
-            </TableCell>
-            <TableCell align="right" sx={{ minWidth: 100 }}>
-              {PV_HEADER_STRINGS[PVHeader.LIVE_READBACK]}
-            </TableCell>
-            <TableCell align="center" sx={{ width: 60 }}>
-              {PV_HEADER_STRINGS[PVHeader.CONFIG]}
-            </TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {filteredPVs.map((pv) => (
-            <TableRow key={pv.uuid} hover>
-              <TableCell padding="checkbox">
-                <Checkbox
-                  checked={selectedPVs.has(pv.uuid)}
-                  onChange={() => handleCheckboxChange(pv.uuid)}
-                  size="small"
-                />
-              </TableCell>
-              <TableCell align="center">{getSeverityIcon(pv.setpoint_data.severity)}</TableCell>
-              <TableCell>{pv.device}</TableCell>
-              <TableCell sx={{ fontFamily: 'monospace' }}>{pv.setpoint}</TableCell>
-              <TableCell align="right" sx={{ fontFamily: 'monospace' }}>
-                {formatValue(pv.setpoint_data.data)}
-              </TableCell>
-              <TableCell align="right" sx={{ fontFamily: 'monospace', fontStyle: 'italic', color: 'text.secondary' }}>
-                --
-              </TableCell>
-              <TableCell align="right" sx={{ fontFamily: 'monospace' }}>
-                {formatValue(pv.readback_data.data)}
-              </TableCell>
-              <TableCell align="right" sx={{ fontFamily: 'monospace', fontStyle: 'italic', color: 'text.secondary' }}>
-                --
-              </TableCell>
-              <TableCell align="center">{pv.config || '--'}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-      {filteredPVs.length === 0 && (
-        <Box sx={{ p: 5, textAlign: 'center' }}>
-          <Typography variant="body1" color="text.secondary">
-            {searchFilter ? 'No PVs match your search' : 'No PVs available'}
-          </Typography>
-        </Box>
-      )}
-    </TableContainer>
+    <Box
+      sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%' }}
+    >
+      <VirtualTable
+        data={tableData}
+        columns={columns}
+        isLoading={isLoading}
+        onRowClick={handleRowClick}
+        getRowId={(row) => row.id}
+        emptyMessage={searchFilter ? 'No PVs match your search' : 'No PVs available'}
+        estimateSize={41}
+        overscan={10}
+        enableRowSelection={!!onSelectionChange}
+        onRowSelectionChange={handleSelectionChange}
+      />
+    </Box>
   );
 };
+
+export default PVTable;

@@ -1,25 +1,38 @@
 # React Squirrel
 
-React implementation of Squirrel - Configuration Management for EPICS PVs.
+Modern web-based frontend for Configuration Management of EPICS Process Variables (PVs).
 
-This is a modern, type-safe React port of the original Qt-based Squirrel application
+React Squirrel provides a responsive, high-performance interface for creating snapshots of control system states, comparing configurations, and managing PV settings. It communicates with a backend API (score-backend) that handles persistence and EPICS control system integration.
+
+## Features
+
+- **Snapshot Management** - Create, view, and delete snapshots of PV values
+- **Live PV Values** - Real-time display of current PV values alongside saved values
+- **Snapshot Comparison** - Side-by-side comparison of two snapshots with difference highlighting
+- **PV Browser** - Browse, search, add, and import PVs with CSV support
+- **Tag Management** - Organize PVs with tag groups for filtering
+- **Virtual Scrolling** - Handle 10,000+ PVs with smooth performance
+- **Restore Functionality** - Preview and restore saved setpoint values
 
 ## Technology Stack
 
-### Core
-
-- **React 18** with **TypeScript** for type-safe component development
-- **Vite** as the build tool (fast, modern alternative to Create React App)
-- **Material UI (MUI)** for the component library and design system
-- **TanStack Router** for fully type-safe routing with built-in data fetching
-
-### Development Tools
-
-- **ESLint** + **Prettier** for code quality and formatting
-- **Husky** for pre-commit hooks with lint-staged
-- **TypeScript** with strict mode for enhanced type safety
+| Category     | Technology                     |
+| ------------ | ------------------------------ |
+| Framework    | React 18 + TypeScript          |
+| Build Tool   | Vite                           |
+| UI Library   | Material UI (MUI)              |
+| Routing      | TanStack Router                |
+| Server State | TanStack React Query           |
+| Tables       | TanStack React Table + Virtual |
+| Real-time    | REST polling / Socket.io       |
 
 ## Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- npm or yarn
+- Backend API running on `http://localhost:8080`
 
 ### Installation
 
@@ -44,53 +57,113 @@ npm run build
 ### Code Quality
 
 ```bash
-# Run linter
-npm run lint
-
-# Fix linting issues
-npm run lint:fix
-
-# Format code
-npm run format
-
-# Check formatting
-npm run format:check
+npm run lint         # Run linter
+npm run lint:fix     # Fix linting issues
+npm run format       # Format code
+npm run format:check # Check formatting
 ```
 
 ## Project Structure
 
 ```
-react-squirrel/
-├── src/
-│   ├── types/          # TypeScript type definitions (models, enums)
-│   ├── components/     # Reusable React components
-│   ├── pages/          # Page-level components
-│   ├── routes/         # TanStack Router route definitions
-│   ├── main.tsx        # Application entry point
-│   └── routeTree.gen.ts # Auto-generated route tree (do not edit)
-├── package.json
-├── tsconfig.json
-├── vite.config.ts
-├── .eslintrc.cjs       # ESLint configuration
-└── .prettierrc         # Prettier configuration
+src/
+├── components/          # Reusable UI components
+│   ├── VirtualTable/   # High-performance virtualized table
+│   ├── Layout.tsx      # Main layout (sidebar + content)
+│   ├── Sidebar.tsx     # Navigation sidebar
+│   ├── SearchBar.tsx   # Search input
+│   ├── PVTable.tsx     # PV table with live values
+│   └── ...
+│
+├── contexts/            # React Context providers
+│   ├── LivePVContext   # Live PV value polling
+│   ├── SnapshotContext # Snapshot creation progress
+│   └── HeartbeatContext # Server health monitoring
+│
+├── services/            # API service layer
+│   ├── apiClient.ts    # Base HTTP client
+│   ├── snapshotService # Snapshot CRUD
+│   ├── pvService       # PV operations
+│   └── tagsService     # Tag management
+│
+├── hooks/               # Custom React hooks
+│   ├── useLiveValues   # Subscribe to live PV updates
+│   └── queries/        # TanStack Query hooks
+│
+├── pages/               # Page-level components
+│   ├── SnapshotListPage
+│   ├── SnapshotDetailsPage
+│   ├── SnapshotComparisonPage
+│   ├── PVBrowserPage
+│   ├── PVDetailsPage
+│   └── TagPage
+│
+├── routes/              # TanStack Router definitions
+│   ├── __root.tsx      # Root layout + providers
+│   ├── snapshots.tsx
+│   ├── snapshot-details.tsx
+│   ├── comparison.tsx
+│   ├── pv-browser.tsx
+│   └── tags.tsx
+│
+├── types/               # TypeScript definitions
+│   ├── models.ts       # Core domain models
+│   └── api.ts          # Backend DTO interfaces
+│
+├── config/              # Configuration
+├── utils/               # Utility functions
+└── main.tsx             # Application entry point
 ```
 
-## Features
+## Routes
 
-### Implemented
+| Route                         | Description                    |
+| ----------------------------- | ------------------------------ |
+| `/`                           | Redirects to `/snapshots`      |
+| `/snapshots`                  | Browse and search snapshots    |
+| `/snapshot-details?id=`       | View snapshot with live values |
+| `/comparison?mainId=&compId=` | Compare two snapshots          |
+| `/pv-browser`                 | Browse, add, and manage PVs    |
+| `/pv-details?id=`             | View individual PV information |
+| `/tags`                       | Manage tag groups              |
 
-- **Snapshot Details Page**: View and interact with snapshot data
-  - Search and filter PVs by name, device, or description
-  - Select individual or all PVs for operations
-  - Restore PVs with confirmation dialog
-  - Material Design UI with responsive layout
-  - Severity indicators with color-coded icons
+## Key Features
 
-### Type System
+### Snapshot Details Page
 
-- Full TypeScript type definitions for all data models
-- Type-safe routing with TanStack Router
-- Strict type checking enabled
+- View saved PV values with severity indicators
+- Real-time live value updates
+- Filter PVs by tags, search by name/device
+- Select PVs for restore operation
+- Compare with another snapshot
+
+### Snapshot Comparison
+
+- Virtualized table for performance
+- Color-coded difference highlighting
+- Compare setpoint and readback values
+- Select PVs for batch operations
+
+### PV Details
+
+- Detailed view of individual PV information
+- Display device, description, and PV addresses
+- Show current setpoint, readback, and config values
+- View assigned tags and metadata
+- Admin-only edit functionality
+
+### PV Browser
+
+- Search PVs with wildcards
+- Add individual PVs or bulk import via CSV
+- View live values
+- Manage PV tags
+
+### Restore Dialog
+
+- Preview PVs and values to be restored
+- Scrollable table with PV names and saved setpoints
+- Confirm before applying values
 
 ## Development
 
@@ -102,18 +175,24 @@ This project uses Husky to run pre-commit hooks that:
 - Format code with Prettier
 - Ensure code quality before commits
 
-### Router
+### Backend Proxy
 
-The project uses TanStack Router for type-safe navigation. Routes are defined in `src/routes/` and automatically compiled into a route tree.
+Vite proxies `/v1/*` requests to `http://localhost:8080` during development. Configure in `vite.config.ts`.
 
-Available routes:
+### Environment
 
-- `/` - Home page
-- `/snapshot-details` - Snapshot details demo page
+The frontend expects the backend API to be running. See the backend repository for setup instructions.
 
-## Architecture Alignment
-- Modern React patterns with hooks
-- Type-safe throughout (TypeScript + TanStack Router)
-- Professional code quality tools (ESLint, Prettier, Husky)
-- Material Design for consistent, accessible UI
-- Fast development experience with Vite
+## Architecture
+
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed documentation on:
+
+- Application architecture and data flow
+- State management patterns
+- Component structure
+- API layer design
+- Performance optimizations
+
+## License
+
+[Add license information]

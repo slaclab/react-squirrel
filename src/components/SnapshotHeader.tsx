@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, IconButton, Typography, Stack } from '@mui/material';
+import { IconButton, Typography, Stack } from '@mui/material';
 import { ArrowBack } from '@mui/icons-material';
 import { Snapshot } from '../types';
 

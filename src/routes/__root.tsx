@@ -2,6 +2,7 @@ import { createRootRoute, Outlet } from '@tanstack/react-router';
 import { TanStackRouterDevtools } from '@tanstack/router-devtools';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import { Layout } from '../components';
+import { SnapshotProvider } from '../contexts';
 
 // Create Material UI theme
 const theme = createTheme({
@@ -48,9 +49,11 @@ export const Route = createRootRoute({
   component: () => (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Layout>
-        <Outlet />
-      </Layout>
+      <SnapshotProvider>
+        <Layout>
+          <Outlet />
+        </Layout>
+      </SnapshotProvider>
       <TanStackRouterDevtools position="bottom-right" />
     </ThemeProvider>
   ),

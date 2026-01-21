@@ -15,9 +15,6 @@ import {
   Typography,
   IconButton,
   Chip,
-  Select,
-  MenuItem,
-  FormControl,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -25,8 +22,6 @@ import {
   Drawer,
   Divider,
   Link,
-  Checkbox,
-  ListItemText,
 } from '@mui/material';
 import { Search, Add, Delete, Close, Upload } from '@mui/icons-material';
 import { PV } from '../types';
@@ -702,85 +697,25 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
                 Tags
               </Typography>
               <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ gap: 1 }}>
-                {tagGroups.map((group) => {
-                  const selectedValues = newPVData.selectedTags[group.name] || [];
-
-                  return (
-                    <FormControl key={group.id} size="small" sx={{ minWidth: 'auto' }}>
-                      <Select
-                        multiple
-                        value={selectedValues}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setNewPVData({
-                            ...newPVData,
-                            selectedTags: {
-                              ...newPVData.selectedTags,
-                              [group.name]: typeof value === 'string' ? value.split(',') : value,
-                            },
-                          });
-                        }}
-                        displayEmpty
-                        renderValue={(selected) => {
-                          if (selected.length === 0) {
-                            return (
-                              <Chip
-                                label={group.name}
-                                size="small"
-                                variant="outlined"
-                                sx={{
-                                  borderRadius: '16px',
-                                  height: '24px',
-                                  '& .MuiChip-label': { px: 1.5 },
-                                }}
-                              />
-                            );
-                          }
-                          return (
-                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                              {selected.map((tagId) => {
-                                const tag = group.tags.find((t) => t.id === tagId);
-                                return tag ? (
-                                  <Chip
-                                    key={tagId}
-                                    label={
-                                      <span>
-                                        {group.name} |{' '}
-                                        <span style={{ color: '#1976d2' }}>{tag.name}</span>
-                                      </span>
-                                    }
-                                    size="small"
-                                    variant="outlined"
-                                    sx={{
-                                      borderRadius: '16px',
-                                      height: '24px',
-                                      '& .MuiChip-label': { px: 1.5 },
-                                    }}
-                                  />
-                                ) : null;
-                              })}
-                            </Box>
-                          );
-                        }}
-                        sx={{
-                          '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-                          '& .MuiSelect-select': {
-                            padding: 0,
-                            display: 'flex',
-                            alignItems: 'center',
-                          },
-                        }}
-                      >
-                        {group.tags.map((tag) => (
-                          <MenuItem key={tag.id} value={tag.id}>
-                            <Checkbox checked={selectedValues.indexOf(tag.id) > -1} />
-                            <ListItemText primary={tag.name} />
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  );
-                })}
+                {tagGroups.map((group) => (
+                  <TagGroupSelect
+                    key={group.id}
+                    groupId={group.id}
+                    groupName={group.name}
+                    tags={group.tags}
+                    selectedValues={newPVData.selectedTags[group.name] || []}
+                    onChange={(groupName, selectedIds) => {
+                      setNewPVData({
+                        ...newPVData,
+                        selectedTags: {
+                          ...newPVData.selectedTags,
+                          [groupName]: selectedIds,
+                        },
+                      });
+                    }}
+                    useIds={true}
+                  />
+                ))}
               </Stack>
             </Box>
           </Stack>

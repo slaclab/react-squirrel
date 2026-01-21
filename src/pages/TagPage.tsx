@@ -114,7 +114,7 @@ export const TagPage: React.FC<TagPageProps> = ({
       await onAddTag(selectedGroup.id, newTagName);
       setNewTagName('');
       // Refresh the selected group data
-      const updatedGroup = tagGroups.find(g => g.id === selectedGroup.id);
+      const updatedGroup = tagGroups.find((g) => g.id === selectedGroup.id);
       if (updatedGroup) {
         setSelectedGroup(updatedGroup);
       }
@@ -134,7 +134,7 @@ export const TagPage: React.FC<TagPageProps> = ({
       // The backend API expects tag ID, so we'll need to update this
       await onDeleteTag(selectedGroup.id, tagName);
       // Refresh the selected group data
-      const updatedGroup = tagGroups.find(g => g.id === selectedGroup.id);
+      const updatedGroup = tagGroups.find((g) => g.id === selectedGroup.id);
       if (updatedGroup) {
         setSelectedGroup(updatedGroup);
       }
@@ -150,12 +150,23 @@ export const TagPage: React.FC<TagPageProps> = ({
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', p: 2 }}>
-      <Stack direction="row" spacing={2} sx={{ mb: 2 }} alignItems="center" justifyContent="space-between">
+      <Stack
+        direction="row"
+        spacing={2}
+        sx={{ mb: 2 }}
+        alignItems="center"
+        justifyContent="space-between"
+      >
         <Typography variant="h5" fontWeight="bold">
           Tag Groups
         </Typography>
         {isAdmin && onAddGroup && (
-          <Button variant="contained" startIcon={<Add />} onClick={() => handleOpenDialog()} size="medium">
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => handleOpenDialog()}
+            size="medium"
+          >
             New Group
           </Button>
         )}
@@ -236,7 +247,7 @@ export const TagPage: React.FC<TagPageProps> = ({
             </Typography>
             {isAdmin && (
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                Click "New Group" to create your first tag group
+                Click &quot;New Group&quot; to create your first tag group
               </Typography>
             )}
           </Box>
@@ -245,9 +256,7 @@ export const TagPage: React.FC<TagPageProps> = ({
 
       {/* Tag Group Dialog */}
       <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          {editMode ? (selectedGroup?.name || 'Tag Group') : 'New Tag Group'}
-        </DialogTitle>
+        <DialogTitle>{editMode ? selectedGroup?.name || 'Tag Group' : 'New Tag Group'}</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 1 }}>
             <TextField
@@ -277,7 +286,8 @@ export const TagPage: React.FC<TagPageProps> = ({
                   <ListItem
                     key={idx}
                     secondaryAction={
-                      isAdmin && onDeleteTag && (
+                      isAdmin &&
+                      onDeleteTag && (
                         <IconButton
                           edge="end"
                           aria-label="delete"
@@ -327,10 +337,12 @@ export const TagPage: React.FC<TagPageProps> = ({
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialog}>
-            {isAdmin ? 'Cancel' : 'Close'}
-          </Button>
-          {isAdmin && <Button variant="contained" onClick={handleSave}>Save</Button>}
+          <Button onClick={handleCloseDialog}>{isAdmin ? 'Cancel' : 'Close'}</Button>
+          {isAdmin && (
+            <Button variant="contained" onClick={handleSave}>
+              Save
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
     </Box>

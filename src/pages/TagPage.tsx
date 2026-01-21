@@ -20,9 +20,10 @@ import {
   List,
   ListItem,
   ListItemText,
+  ListItemSecondaryAction,
   Chip,
 } from '@mui/material';
-import { Add, Delete } from '@mui/icons-material';
+import { Add, Delete, Edit } from '@mui/icons-material';
 
 interface TagGroup {
   id: string;
@@ -38,7 +39,13 @@ interface TagPageProps {
   onEditGroup?: (id: string, name: string, description: string) => void;
   onDeleteGroup?: (id: string) => void;
   onAddTag?: (groupId: string, tagName: string) => Promise<void>;
-  onDeleteTag?: (groupId: string, tagId: string) => Promise<void>;
+  onEditTag?: (
+    groupId: string,
+    tagName: string,
+    name: string,
+    description: string
+  ) => Promise<void>;
+  onDeleteTag?: (groupId: string, tagName: string) => Promise<void>;
 }
 
 export const TagPage: React.FC<TagPageProps> = ({
@@ -48,6 +55,7 @@ export const TagPage: React.FC<TagPageProps> = ({
   onEditGroup,
   onDeleteGroup,
   onAddTag,
+  onEditTag,
   onDeleteTag,
 }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -282,25 +290,33 @@ export const TagPage: React.FC<TagPageProps> = ({
             </Typography>
             {selectedGroup && selectedGroup.tags.length > 0 ? (
               <List dense>
-                {selectedGroup.tags.map((tag, idx) => (
-                  <ListItem
-                    key={idx}
-                    secondaryAction={
-                      isAdmin &&
-                      onDeleteTag && (
+                {selectedGroup.tags.map((tagName, idx) => (
+                  <ListItem key={idx}>
+                    <ListItemText primary={tagName} />
+                    <ListItemSecondaryAction>
+                      {isAdmin && onEditTag && (
+                        <IconButton
+                          edge="end"
+                          aria-label="edit tag"
+                          size="small"
+                          onClick={() => handleEditTag(tagName)}
+                          color="default"
+                        >
+                          <Edit fontSize="small" />
+                        </IconButton>
+                      )}
+                      {isAdmin && onDeleteTag && (
                         <IconButton
                           edge="end"
                           aria-label="delete"
                           size="small"
-                          onClick={() => handleDeleteTag(tag)}
+                          onClick={() => handleDeleteTag(tagName)}
                           color="error"
                         >
                           <Delete fontSize="small" />
                         </IconButton>
-                      )
-                    }
-                  >
-                    <ListItemText primary={tag} />
+                      )}
+                    </ListItemSecondaryAction>
                   </ListItem>
                 ))}
               </List>

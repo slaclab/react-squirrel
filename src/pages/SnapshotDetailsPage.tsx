@@ -207,15 +207,6 @@ export const SnapshotDetailsPage: React.FC<SnapshotDetailsPageProps> = ({
       {/* Tag Filter Bar */}
       <Box sx={{ mb: 2, flexShrink: 0 }}>
         <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-          {hasActiveFilters && (
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ fontStyle: 'italic', mr: 1 }}
-            >
-              Filtering {snapshot.pvs.length} loaded PVs
-            </Typography>
-          )}
           {tagGroups.map((group) => (
             <TagGroupSelect
               key={group.id}
@@ -234,14 +225,23 @@ export const SnapshotDetailsPage: React.FC<SnapshotDetailsPageProps> = ({
           ))}
 
           {hasActiveFilters && (
-            <Link
-              component="button"
-              variant="body2"
-              onClick={clearFilters}
-              sx={{ ml: 1, cursor: 'pointer', textDecoration: 'none', color: 'primary.main' }}
-            >
-              x Clear Filters
-            </Link>
+            <>
+              <Link
+                component="button"
+                variant="body2"
+                onClick={clearFilters}
+                sx={{ ml: 1, cursor: 'pointer', textDecoration: 'none', color: 'primary.main' }}
+              >
+                x Clear Filters
+              </Link>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ fontStyle: 'italic', ml: 1 }}
+              >
+                Filtering {snapshot.pvs.length} loaded PVs
+              </Typography>
+            </>
           )}
         </Stack>
       </Box>

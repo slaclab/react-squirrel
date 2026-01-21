@@ -14,11 +14,11 @@ import {
 } from '@mui/material';
 import {
   Menu as MenuIcon,
-  Camera as CameraIcon,
+  Camera as ApertureIcon,
+  PhotoCamera as CameraIcon,
   Search as SearchIcon,
   Label as LabelIcon,
   ChevronLeft as ChevronLeftIcon,
-  CropSquare as CropSquareIcon,
   CheckCircle as CheckCircleIcon,
   Error as ErrorIcon,
 } from '@mui/icons-material';
@@ -40,7 +40,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, onToggle, onSaveSnapshot
   const { snapshotProgress, clearSnapshot } = useSnapshot();
 
   const menuItems = [
-    { title: 'View Snapshots', icon: <CameraIcon />, path: '/snapshots' },
+    { title: 'View Snapshots', icon: <ApertureIcon />, path: '/snapshots' },
     { title: 'Browse PVs', icon: <SearchIcon />, path: '/pv-browser' },
     { title: 'Configure Tags', icon: <LabelIcon />, path: '/tags' },
   ];
@@ -259,7 +259,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, onToggle, onSaveSnapshot
               color: snapshotProgress.isCreating ? '#888' : '#4caf50',
             }}
           >
-            <CropSquareIcon />
+            <CameraIcon />
           </ListItemIcon>
           {open && (
             <ListItemText

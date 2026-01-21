@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { SnapshotListPage } from '../pages';
 import { Snapshot } from '../types';
 import { useSnapshots, useDeleteSnapshot } from '../hooks';
+import { useAdminMode } from '../contexts/AdminModeContext';
 
 export const Route = createFileRoute('/snapshots')({
   component: Snapshots,
@@ -9,6 +10,7 @@ export const Route = createFileRoute('/snapshots')({
 
 function Snapshots() {
   const navigate = useNavigate();
+  const { isAdminMode } = useAdminMode();
   const { data: snapshots, isLoading, error } = useSnapshots();
   const deleteSnapshotMutation = useDeleteSnapshot();
 
@@ -42,7 +44,7 @@ function Snapshots() {
     <SnapshotListPage
       snapshots={formattedSnapshots}
       onSnapshotClick={handleSnapshotClick}
-      onDeleteSnapshot={handleDeleteSnapshot}
+      onDeleteSnapshot={isAdminMode ? handleDeleteSnapshot : undefined}
     />
   );
 }

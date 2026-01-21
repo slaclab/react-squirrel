@@ -32,6 +32,7 @@ import { Search, Add, Delete, Close, Upload } from '@mui/icons-material';
 import { PV } from '../types';
 import { tagsService } from '../services';
 import { CSVImportDialog } from '../components/CSVImportDialog';
+import { TagGroupSelect } from '../components/TagGroupSelect';
 import { ParsedCSVRow } from '../utils/csvParser';
 
 interface PVBrowserPageProps {
@@ -44,6 +45,15 @@ interface PVBrowserPageProps {
     relTolerance: string;
     selectedTags: Record<string, string[]>;
   }) => Promise<void>;
+  onUpdatePV?: (
+    pvId: string,
+    updates: {
+      description?: string;
+      absTolerance?: number;
+      relTolerance?: number;
+      tags?: string[];
+    }
+  ) => Promise<void>;
   onImportPVs?: (csvData: ParsedCSVRow[]) => Promise<void>;
   onDeletePV?: (pv: PV) => void;
   onPVClick?: (pv: PV) => void;
@@ -55,6 +65,7 @@ interface PVBrowserPageProps {
 export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
   pvs,
   onAddPV,
+  onUpdatePV,
   onImportPVs,
   onDeletePV,
   onPVClick,
@@ -65,7 +76,9 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
   const [selectedPV, setSelectedPV] = useState<PV | null>(null);
   const [addPVDialogOpen, setAddPVDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
-  const [tagGroups, setTagGroups] = useState<Array<{ id: string; name: string; tags: Array<{ id: string; name: string }> }>>([]);
+  const [tagGroups, setTagGroups] = useState<
+    Array<{ id: string; name: string; tags: Array<{ id: string; name: string }> }>
+  >([]);
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
   const [newPVData, setNewPVData] = useState({
     pvName: '',
@@ -75,6 +88,14 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
     relTolerance: '',
     selectedTags: {} as Record<string, string[]>,
   });
+  // Edit state for PV details drawer
+  const [editPVData, setEditPVData] = useState({
+    description: '',
+    absTolerance: '',
+    relTolerance: '',
+    selectedTags: {} as Record<string, string[]>,
+  });
+  const [isSaving, setIsSaving] = useState(false);
 
   // Fetch tag groups when component mounts
   useEffect(() => {
@@ -132,7 +153,7 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
         result = result.filter((pv) => {
           const pvTagValues = pv.tags[groupName] ? Object.values(pv.tags[groupName]) : [];
           // PV must have at least one of the selected tags
-          return filterValues.some(filterValue => pvTagValues.includes(filterValue));
+          return filterValues.some((filterValue) => pvTagValues.includes(filterValue));
         });
       }
     });
@@ -141,7 +162,9 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
   }, [pvs, activeFilters]);
 
   // Check if any filters are active
-  const hasActiveFilters = Object.values(activeFilters).some((values) => values && values.length > 0);
+  const hasActiveFilters = Object.values(activeFilters).some(
+    (values) => values && values.length > 0
+  );
 
   const clearFilters = () => {
     setActiveFilters({});
@@ -149,7 +172,78 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
 
   const handleRowClick = (pv: PV) => {
     setSelectedPV(pv);
+    // Initialize edit state from selected PV, including current tags
+    // Build selectedTags from the PV's tags structure
+    // PV tags are structured as: { groupName: { tagName: tagName } }
+    // We need to convert to: { groupName: [tagId, tagId, ...] }
+    const initialSelectedTags: Record<string, string[]> = {};
+
+    // For each tag group in the PV, find the corresponding tag IDs from tagGroups
+    Object.entries(pv.tags).forEach(([groupName, tagSet]) => {
+      if (typeof tagSet === 'object') {
+        const tagNames = Object.values(tagSet).filter((t): t is string => typeof t === 'string');
+        // Find the tag group and map tag names to IDs
+        const group = tagGroups.find((g) => g.name === groupName);
+        if (group) {
+          const tagIds = tagNames
+            .map((tagName) => group.tags.find((t) => t.name === tagName)?.id)
+            .filter((id): id is string => id !== undefined);
+          if (tagIds.length > 0) {
+            initialSelectedTags[groupName] = tagIds;
+          }
+        }
+      }
+    });
+
+    setEditPVData({
+      description: pv.description || '',
+      absTolerance: pv.abs_tolerance?.toString() || '',
+      relTolerance: pv.rel_tolerance?.toString() || '',
+      selectedTags: initialSelectedTags,
+    });
     if (onPVClick) onPVClick(pv);
+  };
+
+  const handleUpdatePVSubmit = async () => {
+    if (!selectedPV || !onUpdatePV) return;
+
+    try {
+      setIsSaving(true);
+      const updates: {
+        description?: string;
+        absTolerance?: number;
+        relTolerance?: number;
+        tags?: string[];
+      } = {};
+
+      if (editPVData.description !== (selectedPV.description || '')) {
+        updates.description = editPVData.description;
+      }
+      if (editPVData.absTolerance !== (selectedPV.abs_tolerance?.toString() || '')) {
+        updates.absTolerance = editPVData.absTolerance
+          ? parseFloat(editPVData.absTolerance)
+          : undefined;
+      }
+      if (editPVData.relTolerance !== (selectedPV.rel_tolerance?.toString() || '')) {
+        updates.relTolerance = editPVData.relTolerance
+          ? parseFloat(editPVData.relTolerance)
+          : undefined;
+      }
+
+      // Always send the current tag selection (to allow removing all tags too)
+      const tagIds = Object.values(editPVData.selectedTags)
+        .flat()
+        .filter((id) => id !== '');
+      updates.tags = tagIds;
+
+      await onUpdatePV(selectedPV.uuid, updates);
+      setSelectedPV(null); // Close drawer on success
+    } catch (err) {
+      console.error('Failed to update PV:', err);
+      alert('Failed to update PV: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleAddPVSubmit = async () => {
@@ -248,82 +342,25 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
       {/* Filter Bar */}
       <Box sx={{ px: 2, pb: 2 }}>
         <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-          {hasActiveFilters && (
-            <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic', mr: 1 }}>
-              Filtering {pvs.length} loaded PVs
-            </Typography>
-          )}
           {tagGroups.map((group) => {
             const options = tagGroupOptions[group.name] || [];
             const selectedValues = activeFilters[group.name] || [];
 
             return (
-              <FormControl key={group.id} size="small" sx={{ minWidth: 'auto' }}>
-                <Select
-                  multiple
-                  value={selectedValues}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setActiveFilters({
-                      ...activeFilters,
-                      [group.name]: typeof value === 'string' ? value.split(',') : value,
-                    });
-                  }}
-                  displayEmpty
-                  renderValue={(selected) => {
-                    if (selected.length === 0) {
-                      return (
-                        <Chip
-                          label={group.name}
-                          size="small"
-                          variant="outlined"
-                          sx={{
-                            borderRadius: '16px',
-                            height: '24px',
-                            '& .MuiChip-label': { px: 1.5 }
-                          }}
-                        />
-                      );
-                    }
-                    return (
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                        {selected.map((value) => (
-                          <Chip
-                            key={value}
-                            label={
-                              <span>
-                                {group.name} | <span style={{ color: '#1976d2' }}>{value}</span>
-                              </span>
-                            }
-                            size="small"
-                            variant="outlined"
-                            sx={{
-                              borderRadius: '16px',
-                              height: '24px',
-                              '& .MuiChip-label': { px: 1.5 }
-                            }}
-                          />
-                        ))}
-                      </Box>
-                    );
-                  }}
-                  sx={{
-                    '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-                    '& .MuiSelect-select': {
-                      padding: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                    },
-                  }}
-                >
-                  {options.map((tag) => (
-                    <MenuItem key={tag.id} value={tag.name}>
-                      <Checkbox checked={selectedValues.indexOf(tag.name) > -1} />
-                      <ListItemText primary={tag.name} />
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <TagGroupSelect
+                key={group.id}
+                groupId={group.id}
+                groupName={group.name}
+                tags={options}
+                selectedValues={selectedValues}
+                onChange={(groupName, selectedIds) => {
+                  setActiveFilters({
+                    ...activeFilters,
+                    [groupName]: selectedIds,
+                  });
+                }}
+                useIds={false}
+              />
             );
           })}
 
@@ -336,6 +373,15 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
             >
               x Clear Filters
             </Link>
+          )}
+          {hasActiveFilters && (
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ fontStyle: 'italic', ml: 1 }}
+            >
+              Filtering {pvs.length} loaded PVs
+            </Typography>
           )}
         </Stack>
       </Box>
@@ -419,11 +465,14 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
           {filteredPVs.length === 0 && (
             <Box sx={{ p: 5, textAlign: 'center' }}>
               <Typography variant="body1" color="text.secondary">
-                {searchText || hasActiveFilters ? 'No PVs match your search or filters' : 'No PVs available'}
+                {searchText || hasActiveFilters
+                  ? 'No PVs match your search or filters'
+                  : 'No PVs available'}
               </Typography>
               {hasActiveFilters && pvs.length > 0 && (
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                  Tag filters are applied to {pvs.length} loaded PV{pvs.length === 1 ? '' : 's'}. Try clearing filters or loading more PVs.
+                  Tag filters are applied to {pvs.length} loaded PV{pvs.length === 1 ? '' : 's'}.
+                  Try clearing filters or loading more PVs.
                 </Typography>
               )}
             </Box>
@@ -444,8 +493,13 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
         }}
       >
         {selectedPV && (
-          <Box>
-            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="center"
+              sx={{ mb: 2 }}
+            >
               <Typography variant="h6">PV Details</Typography>
               <IconButton size="small" onClick={() => setSelectedPV(null)}>
                 <Close />
@@ -453,7 +507,8 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
             </Stack>
             <Divider sx={{ mb: 2 }} />
 
-            <Stack spacing={2}>
+            <Stack spacing={2} sx={{ flex: 1 }}>
+              {/* PV Name - always read-only */}
               <Box>
                 <Typography variant="caption" color="text.secondary">
                   PV Name
@@ -463,6 +518,7 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
                 </Typography>
               </Box>
 
+              {/* Readback Name - always read-only */}
               <Box>
                 <Typography variant="caption" color="text.secondary">
                   Readback Name
@@ -472,43 +528,125 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
                 </Typography>
               </Box>
 
-              <Box>
-                <Typography variant="caption" color="text.secondary">
-                  Description
-                </Typography>
-                <Typography variant="body2" sx={{ mt: 0.5 }}>
-                  {selectedPV.description || 'No description'}
-                </Typography>
-              </Box>
-
-              <Box>
-                <Typography variant="caption" color="text.secondary">
-                  Tolerance
-                </Typography>
-                <Typography variant="body2" sx={{ mt: 0.5 }}>
-                  Absolute: {selectedPV.abs_tolerance ?? 'N/A'}
-                  <br />
-                  Relative: {selectedPV.rel_tolerance ?? 'N/A'}
-                </Typography>
-              </Box>
-
-              <Box>
-                <Typography variant="caption" color="text.secondary">
-                  Tags
-                </Typography>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
-                  {getTags(selectedPV).map((tag, idx) => (
-                    <Chip key={idx} label={tag} size="small" />
-                  ))}
+              {/* Description - editable in admin mode */}
+              {isAdmin ? (
+                <TextField
+                  label="Description"
+                  value={editPVData.description}
+                  onChange={(e) => setEditPVData({ ...editPVData, description: e.target.value })}
+                  fullWidth
+                  size="small"
+                  multiline
+                  rows={2}
+                />
+              ) : (
+                <Box>
+                  <Typography variant="caption" color="text.secondary">
+                    Description
+                  </Typography>
+                  <Typography variant="body2" sx={{ mt: 0.5 }}>
+                    {selectedPV.description || 'No description'}
+                  </Typography>
                 </Box>
-              </Box>
+              )}
+
+              {/* Tolerance - editable in admin mode */}
+              {isAdmin ? (
+                <Stack direction="row" spacing={2}>
+                  <TextField
+                    label="Absolute Tolerance"
+                    value={editPVData.absTolerance}
+                    onChange={(e) => setEditPVData({ ...editPVData, absTolerance: e.target.value })}
+                    fullWidth
+                    size="small"
+                    type="number"
+                  />
+                  <TextField
+                    label="Relative Tolerance"
+                    value={editPVData.relTolerance}
+                    onChange={(e) => setEditPVData({ ...editPVData, relTolerance: e.target.value })}
+                    fullWidth
+                    size="small"
+                    type="number"
+                  />
+                </Stack>
+              ) : (
+                <Box>
+                  <Typography variant="caption" color="text.secondary">
+                    Tolerance
+                  </Typography>
+                  <Typography variant="body2" sx={{ mt: 0.5 }}>
+                    Absolute: {selectedPV.abs_tolerance ?? 'N/A'}
+                    <br />
+                    Relative: {selectedPV.rel_tolerance ?? 'N/A'}
+                  </Typography>
+                </Box>
+              )}
+
+              {/* Tags - editable in admin mode */}
+              {isAdmin ? (
+                <Box>
+                  <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                    Tags
+                  </Typography>
+                  <Stack direction="column" spacing={1}>
+                    {tagGroups.map((group) => (
+                      <TagGroupSelect
+                        key={group.id}
+                        groupId={group.id}
+                        groupName={group.name}
+                        tags={group.tags}
+                        selectedValues={editPVData.selectedTags[group.name] || []}
+                        onChange={(groupName, selectedIds) => {
+                          setEditPVData({
+                            ...editPVData,
+                            selectedTags: {
+                              ...editPVData.selectedTags,
+                              [groupName]: selectedIds,
+                            },
+                          });
+                        }}
+                        useIds={true}
+                      />
+                    ))}
+                  </Stack>
+                </Box>
+              ) : (
+                <Box>
+                  <Typography variant="caption" color="text.secondary">
+                    Tags
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
+                    {getTags(selectedPV).map((tag, idx) => (
+                      <Chip key={idx} label={tag} size="small" />
+                    ))}
+                  </Box>
+                </Box>
+              )}
             </Stack>
+
+            {/* Save button - only shown in admin mode */}
+            {isAdmin && onUpdatePV && (
+              <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+                <Stack direction="row" spacing={1} justifyContent="flex-end">
+                  <Button onClick={() => setSelectedPV(null)}>Cancel</Button>
+                  <Button variant="contained" onClick={handleUpdatePVSubmit} disabled={isSaving}>
+                    {isSaving ? 'Saving...' : 'Save'}
+                  </Button>
+                </Stack>
+              </Box>
+            )}
           </Box>
         )}
       </Drawer>
 
       {/* Add PV Dialog */}
-      <Dialog open={addPVDialogOpen} onClose={() => setAddPVDialogOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={addPVDialogOpen}
+        onClose={() => setAddPVDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>Create a New PV</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
@@ -593,7 +731,7 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
                                 sx={{
                                   borderRadius: '16px',
                                   height: '24px',
-                                  '& .MuiChip-label': { px: 1.5 }
+                                  '& .MuiChip-label': { px: 1.5 },
                                 }}
                               />
                             );
@@ -601,13 +739,14 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
                           return (
                             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                               {selected.map((tagId) => {
-                                const tag = group.tags.find(t => t.id === tagId);
+                                const tag = group.tags.find((t) => t.id === tagId);
                                 return tag ? (
                                   <Chip
                                     key={tagId}
                                     label={
                                       <span>
-                                        {group.name} | <span style={{ color: '#1976d2' }}>{tag.name}</span>
+                                        {group.name} |{' '}
+                                        <span style={{ color: '#1976d2' }}>{tag.name}</span>
                                       </span>
                                     }
                                     size="small"
@@ -615,7 +754,7 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
                                     sx={{
                                       borderRadius: '16px',
                                       height: '24px',
-                                      '& .MuiChip-label': { px: 1.5 }
+                                      '& .MuiChip-label': { px: 1.5 },
                                     }}
                                   />
                                 ) : null;

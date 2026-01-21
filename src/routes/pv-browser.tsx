@@ -314,6 +314,29 @@ function PVBrowser() {
     }
   };
 
+  const handleUpdatePV = async (
+    pvId: string,
+    updates: {
+      description?: string;
+      absTolerance?: number;
+      relTolerance?: number;
+      tags?: string[];
+    }
+  ) => {
+    try {
+      await pvService.updatePV(pvId, {
+        description: updates.description,
+        absTolerance: updates.absTolerance,
+        relTolerance: updates.relTolerance,
+        tags: updates.tags,
+      });
+      await fetchInitialPVs(tagGroupMap, searchQuery); // Refresh the list
+    } catch (err) {
+      console.error('Failed to update PV:', err);
+      throw err; // Re-throw to let the UI handle the error
+    }
+  };
+
   const handlePVClick = (pv: PV) => {
     console.log('PV clicked:', pv);
   };
@@ -331,6 +354,7 @@ function PVBrowser() {
       <PVBrowserPage
         pvs={pvs}
         onAddPV={handleAddPV}
+        onUpdatePV={handleUpdatePV}
         onImportPVs={handleImportPVs}
         onDeletePV={handleDeletePV}
         onPVClick={handlePVClick}

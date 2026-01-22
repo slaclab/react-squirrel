@@ -105,7 +105,36 @@ function Tags() {
     }
   };
 
-  const handleDeleteTag = async (groupId: string, tagId: string) => {
+  const handleEditTag = async (
+    groupId: string,
+    tagName: string,
+    newTagName: string,
+    newTagDescription: string
+  ) => {
+    try {
+      // Find the tag ID from the tag name
+      const group = tagGroups.find((g) => g.id === groupId);
+      if (!group || !group.tags) {
+        throw new Error('Tag group not found');
+      }
+
+      const tag = group.tags.find((t) => t.name === tagName);
+      if (!tag) {
+        throw new Error('Tag not found');
+      }
+
+      await tagsService.updateTagInGroup(groupId, tag.id, {
+        name: newTagName,
+        description: newTagDescription,
+      });
+      await fetchTagGroups();
+    } catch (err) {
+      console.error('Failed to edit tag:', err);
+      throw err;
+    }
+  };
+
+  const handleDeleteTag = async (groupId: string, tagName: string) => {
     try {
       // Find the tag ID from the tag name
       const group = tagGroups.find((g) => g.id === groupId);
@@ -142,6 +171,7 @@ function Tags() {
       onEditGroup={handleEditGroup}
       onDeleteGroup={handleDeleteGroup}
       onAddTag={handleAddTag}
+      onEditTag={handleEditTag}
       onDeleteTag={handleDeleteTag}
     />
   );

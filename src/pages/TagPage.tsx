@@ -53,12 +53,16 @@ export const TagPage: React.FC<TagPageProps> = ({
   onDeleteTag,
 }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [tagDialogOpen, setTagDialogOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<TagGroup | null>(null);
+  const [selectedTag, setSelectedTag] = useState<Tag | null>(null);
   const [editMode, setEditMode] = useState(false);
 
   // Form state
   const [groupName, setGroupName] = useState('');
+  const [tagName, setTagName] = useState('');
   const [groupDescription, setGroupDescription] = useState('');
+  const [tagDescription, setTagDescription] = useState('');
   const [newTagName, setNewTagName] = useState('');
 
   const handleOpenDialog = (group?: TagGroup) => {
@@ -83,6 +87,26 @@ export const TagPage: React.FC<TagPageProps> = ({
     setGroupName('');
     setGroupDescription('');
     setNewTagName('');
+  };
+
+  const handleOpenTagDialog = (tag?: Tag) => {
+    if (tag) {
+      setSelectedTag(tag);
+      setTagName(tag.name);
+      setTagDescription(tag.description || '');
+      setEditMode(true);
+    } else {
+      setSelectedTag(null);
+      setTagName('');
+      setTagDescription('');
+      setEditMode(false);
+    }
+    setTagDialogOpen(true);
+  };
+
+  const handleCloseTagDialog = () => {
+    setTagDialogOpen(false);
+    setSelectedTag(null);
   };
 
   const handleSave = async () => {
@@ -126,7 +150,22 @@ export const TagPage: React.FC<TagPageProps> = ({
     }
   };
 
-  const handleDeleteTag = async (tagName: string) => {
+  const handleEditTag = async (tag: Tag) => {
+    if (!selectedGroup || !onEditTag) return;
+
+    try {
+      await onEditTag(selectedGroup.id, tag.name, tagName, tagDescription);
+      const updatedGroup = tagGroups.find((g) => g.id === selectedGroup.id);
+      if (updatedGroup) {
+        setSelectedGroup(updatedGroup);
+      }
+    } catch (err) {
+      console.error('Failed to edit tag:', err);
+      alert('Failed to edit tag: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    }
+  };
+
+  const handleDeleteTag = async (tag: Tag) => {
     if (!confirm(`Delete tag "${tag.name}"?`)) return;
 
     if (!selectedGroup || !onDeleteTag) return;
@@ -350,6 +389,53 @@ export const TagPage: React.FC<TagPageProps> = ({
           <Button onClick={handleCloseDialog}>{isAdmin ? 'Cancel' : 'Close'}</Button>
           {isAdmin && (
             <Button variant="contained" onClick={handleSave}>
+              Save
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
+
+      {/* Tag Dialog */}
+      <Dialog
+        open={dialogOpen && tagDialogOpen}
+        onClose={handleCloseTagDialog}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>{editMode && selectedTag ? 'Edit Tag' : 'New Tag'}</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 1 }}>
+            <TextField
+              fullWidth
+              label="Tag Name"
+              value={tagName}
+              onChange={(e) => setTagName(e.target.value)}
+              margin="normal"
+              disabled={!isAdmin}
+            />
+            <TextField
+              fullWidth
+              label="Tag Description"
+              value={tagDescription}
+              onChange={(e) => setTagDescription(e.target.value)}
+              margin="normal"
+              disabled={!isAdmin}
+              multiline
+              rows={2}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseTagDialog}>{isAdmin ? 'Cancel' : 'Close'}</Button>
+          {isAdmin && (
+            <Button
+              variant="contained"
+              onClick={() => {
+                if (selectedTag) {
+                  handleEditTag(selectedTag);
+                }
+              }}
+            >
               Save
             </Button>
           )}

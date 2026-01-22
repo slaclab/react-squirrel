@@ -48,14 +48,27 @@ export interface EpicsData {
   precision?: number;
   upper_ctrl_limit?: number;
   lower_ctrl_limit?: number;
-  lower_alarm_limit?: number;  // LOLO
-  upper_alarm_limit?: number;  // HIHI
+  lower_alarm_limit?: number; // LOLO
+  upper_alarm_limit?: number; // HIHI
   lower_warning_limit?: number; // LOW
   upper_warning_limit?: number; // HIGH
   enums?: string[];
 }
 
 export type TagSet = { [key: string]: any };
+
+export interface Tag {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export interface TagGroup {
+  id: string;
+  name: string;
+  description: string;
+  tags: Tag[];
+}
 
 export interface PV {
   uuid: string;
@@ -78,7 +91,7 @@ export interface Snapshot {
   description: string;
   title: string;
   pvs: PV[];
-  pvCount?: number;  // For list view without loading all PVs
+  pvCount?: number; // For list view without loading all PVs
   creation_time: Date;
 }
 
@@ -95,13 +108,13 @@ export enum PVHeader {
 }
 
 export const PV_HEADER_STRINGS: { [key in PVHeader]: string } = {
-  [PVHeader.CHECKBOX]: "",
-  [PVHeader.SEVERITY]: "",
-  [PVHeader.DEVICE]: "Device",
-  [PVHeader.PV]: "PV Name",
-  [PVHeader.SETPOINT]: "Saved Value",
-  [PVHeader.LIVE_SETPOINT]: "Live Value",
-  [PVHeader.READBACK]: "Saved Readback",
-  [PVHeader.LIVE_READBACK]: "Live Readback",
-  [PVHeader.CONFIG]: "CON",
+  [PVHeader.CHECKBOX]: '',
+  [PVHeader.SEVERITY]: '',
+  [PVHeader.DEVICE]: 'Device',
+  [PVHeader.PV]: 'PV Name',
+  [PVHeader.SETPOINT]: 'Saved Value',
+  [PVHeader.LIVE_SETPOINT]: 'Live Value',
+  [PVHeader.READBACK]: 'Saved Readback',
+  [PVHeader.LIVE_READBACK]: 'Live Readback',
+  [PVHeader.CONFIG]: 'CON',
 };

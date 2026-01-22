@@ -24,13 +24,7 @@ import {
   Chip,
 } from '@mui/material';
 import { Add, Delete, Edit } from '@mui/icons-material';
-
-interface TagGroup {
-  id: string;
-  name: string;
-  description: string;
-  tags: string[];
-}
+import { TagGroup, Tag } from '../types';
 
 interface TagPageProps {
   tagGroups?: TagGroup[];
@@ -133,14 +127,14 @@ export const TagPage: React.FC<TagPageProps> = ({
   };
 
   const handleDeleteTag = async (tagName: string) => {
-    if (!confirm(`Delete tag "${tagName}"?`)) return;
+    if (!confirm(`Delete tag "${tag.name}"?`)) return;
 
     if (!selectedGroup || !onDeleteTag) return;
 
     try {
       // We need to find the tag ID - for now we're using tag name
       // The backend API expects tag ID, so we'll need to update this
-      await onDeleteTag(selectedGroup.id, tagName);
+      await onDeleteTag(selectedGroup.id, tag.name);
       // Refresh the selected group data
       const updatedGroup = tagGroups.find((g) => g.id === selectedGroup.id);
       if (updatedGroup) {
@@ -290,16 +284,16 @@ export const TagPage: React.FC<TagPageProps> = ({
             </Typography>
             {selectedGroup && selectedGroup.tags.length > 0 ? (
               <List dense>
-                {selectedGroup.tags.map((tagName, idx) => (
+                {selectedGroup.tags.map((tag, idx) => (
                   <ListItem key={idx}>
-                    <ListItemText primary={tagName} />
+                    <ListItemText primary={tag.name} />
                     <ListItemSecondaryAction>
                       {isAdmin && onEditTag && (
                         <IconButton
                           edge="end"
                           aria-label="edit tag"
                           size="small"
-                          onClick={() => handleEditTag(tagName)}
+                          onClick={() => handleOpenTagDialog(tag)}
                           color="default"
                         >
                           <Edit fontSize="small" />
@@ -310,7 +304,7 @@ export const TagPage: React.FC<TagPageProps> = ({
                           edge="end"
                           aria-label="delete"
                           size="small"
-                          onClick={() => handleDeleteTag(tagName)}
+                          onClick={() => handleDeleteTag(tag)}
                           color="error"
                         >
                           <Delete fontSize="small" />

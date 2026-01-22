@@ -3,19 +3,7 @@ import { useState, useEffect } from 'react';
 import { TagPage } from '../pages';
 import { tagsService } from '../services';
 import { useAdminMode } from '../contexts/AdminModeContext';
-
-interface TagWithId {
-  id: string;
-  name: string;
-}
-
-interface TagGroup {
-  id: string;
-  name: string;
-  description: string;
-  tags: string[];
-  tagsWithIds?: TagWithId[]; // Keep full tag objects for operations
-}
+import { TagGroup } from '../types';
 
 export const Route = createFileRoute('/tags')({
   component: Tags,
@@ -48,8 +36,7 @@ function Tags() {
               id: group.id,
               name: group.name,
               description: group.description || '',
-              tags: group.tags.map((tag) => tag.name),
-              tagsWithIds: group.tags, // Keep full tag objects for operations
+              tags: group.tags,
             };
           } catch (err) {
             console.error(`Failed to fetch details for group ${summary.id}:`, err);
@@ -59,7 +46,6 @@ function Tags() {
               name: summary.name,
               description: summary.description || '',
               tags: [],
-              tagsWithIds: [],
             };
           }
         })
@@ -123,11 +109,11 @@ function Tags() {
     try {
       // Find the tag ID from the tag name
       const group = tagGroups.find((g) => g.id === groupId);
-      if (!group || !group.tagsWithIds) {
+      if (!group || !group.tags) {
         throw new Error('Tag group not found');
       }
 
-      const tag = group.tagsWithIds.find((t) => t.name === tagId);
+      const tag = group.tags.find((t) => t.name === tagName);
       if (!tag) {
         throw new Error('Tag not found');
       }

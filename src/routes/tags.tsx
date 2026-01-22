@@ -98,7 +98,24 @@ function Tags() {
   const handleAddTag = async (groupId: string, tagName: string) => {
     try {
       await tagsService.addTagToGroup(groupId, { name: tagName });
-      await fetchTagGroups(); // Refresh the list to get updated tags
+
+      // Fetch the updated group details
+      const details = await tagsService.getTagGroupById(groupId);
+      const updatedGroup = details[0];
+
+      // Update local state for this specific group
+      setTagGroups((prevGroups) =>
+        prevGroups.map((group) =>
+          group.id === groupId
+            ? {
+                id: updatedGroup.id,
+                name: updatedGroup.name,
+                description: updatedGroup.description || '',
+                tags: updatedGroup.tags,
+              }
+            : group
+        )
+      );
     } catch (err) {
       console.error('Failed to add tag:', err);
       throw err; // Re-throw to let the UI handle it

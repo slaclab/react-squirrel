@@ -305,7 +305,9 @@ export const TagPage: React.FC<TagPageProps> = ({
 
       {/* Tag Group Dialog */}
       <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>{editMode ? selectedGroup?.name || 'Tag Group' : 'New Tag Group'}</DialogTitle>
+        <DialogTitle>
+          {isAdmin ? (editMode ? 'Edit Tag Group' : 'New Tag Group') : 'Tag Group Details'}
+        </DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 1 }}>
             <TextField

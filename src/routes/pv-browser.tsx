@@ -144,7 +144,9 @@ function PVBrowser() {
         token = response.continuationToken;
         pageCount++;
 
-        console.log(`Loaded page ${pageCount}: ${response.results.length} PVs (total: ${allPVs.length})`);
+        console.log(
+          `Loaded page ${pageCount}: ${response.results.length} PVs (total: ${allPVs.length})`
+        );
       } while (token);
 
       setPVs(allPVs);
@@ -314,10 +316,6 @@ function PVBrowser() {
     console.log('PV clicked:', pv);
   };
 
-  if (loading) {
-    return <div>Loading PVs...</div>;
-  }
-
   if (error) {
     return <div>Error: {error}</div>;
   }
@@ -335,7 +333,15 @@ function PVBrowser() {
         onSearchChange={setSearchQuery}
       />
       {hasMore && (
-        <div style={{ padding: '20px', textAlign: 'center', display: 'flex', gap: '10px', justifyContent: 'center' }}>
+        <div
+          style={{
+            padding: '20px',
+            textAlign: 'center',
+            display: 'flex',
+            gap: '10px',
+            justifyContent: 'center',
+          }}
+        >
           <button
             onClick={loadMorePVs}
             disabled={isLoadingMore || isLoadingAll}

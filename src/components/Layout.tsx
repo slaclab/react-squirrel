@@ -6,7 +6,7 @@ import {
   AdminPanelSettings as AdminIcon,
 } from '@mui/icons-material';
 import { Sidebar } from './Sidebar';
-import { UserAvatar } from './UserAvatar';
+// import { UserAvatar } from './UserAvatar';
 import { CreateSnapshotDialog } from './CreateSnapshotDialog';
 import { LiveDataWarningBanner } from './LiveDataWarningBanner';
 import { useAdminMode } from '../contexts/AdminModeContext';
@@ -96,7 +96,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <BugReportIcon />
               </IconButton>
             </Tooltip>
-            <UserAvatar userName="Test User" userInitials="T" isAdmin={true} />
+            {/* <UserAvatar userName="Test User" userInitials="T" isAdmin={true} /> */}
           </Toolbar>
         </AppBar>
 

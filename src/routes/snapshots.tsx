@@ -45,6 +45,7 @@ function Snapshots() {
       snapshots={formattedSnapshots}
       onSnapshotClick={handleSnapshotClick}
       onDeleteSnapshot={isAdminMode ? handleDeleteSnapshot : undefined}
+      isAdmin={isAdminMode}
     />
   );
 }

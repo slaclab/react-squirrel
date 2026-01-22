@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Box,
   Stack,
@@ -22,6 +22,7 @@ import {
   Drawer,
   Divider,
   Link,
+  CircularProgress,
 } from '@mui/material';
 import { Search, Add, Delete, Close, Upload } from '@mui/icons-material';
 import { PV } from '../types';
@@ -55,19 +56,25 @@ interface PVBrowserPageProps {
   isAdmin?: boolean;
   searchText?: string;
   onSearchChange?: (text: string) => void;
+  onLoadMore?: () => void;
+  hasMore?: boolean;
+  isLoadingMore?: boolean;
 }
 
 export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
-  pvs,
-  onAddPV,
-  onUpdatePV,
-  onImportPVs,
-  onDeletePV,
-  onPVClick,
-  isAdmin = false,
-  searchText = '',
-  onSearchChange,
-}) => {
+                                                              pvs,
+                                                              onAddPV,
+                                                              onUpdatePV,
+                                                              onImportPVs,
+                                                              onDeletePV,
+                                                              onPVClick,
+                                                              isAdmin = false,
+                                                              searchText = '',
+                                                              onSearchChange,
+                                                              onLoadMore,
+                                                              hasMore = false,
+                                                              isLoadingMore = false,
+                                                            }) => {
   const [selectedPV, setSelectedPV] = useState<PV | null>(null);
   const [addPVDialogOpen, setAddPVDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
@@ -91,6 +98,10 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
     selectedTags: {} as Record<string, string[]>,
   });
   const [isSaving, setIsSaving] = useState(false);
+
+  // Refs for infinite scroll
+  const sentinelRef = useRef<HTMLTableRowElement>(null);
+  const tableContainerRef = useRef<HTMLDivElement>(null);
 
   // Fetch tag groups when component mounts
   useEffect(() => {
@@ -125,6 +136,35 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
     };
     fetchTagGroups();
   }, []);
+
+  // Effect for infinite scroll
+  useEffect(() => {
+    if (!onLoadMore || !hasMore || isLoadingMore) return;
+
+    const sentinel = sentinelRef.current;
+    const container = tableContainerRef.current;
+    if (!sentinel || !container) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry.isIntersecting && hasMore && !isLoadingMore) {
+          onLoadMore();
+        }
+      },
+      {
+        root: container,
+        rootMargin: '100px', // Start loading 100px before reaching the bottom
+        threshold: 0,
+      }
+    );
+
+    observer.observe(sentinel);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [onLoadMore, hasMore, isLoadingMore]);
 
   // Get all available tag options from backend tag groups (not from PVs)
   const tagGroupOptions = useMemo(() => {
@@ -383,7 +423,11 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
 
       {/* Table */}
       <Box sx={{ flex: 1, px: 2, pb: 2, overflow: 'hidden', display: 'flex' }}>
-        <TableContainer component={Paper} sx={{ flex: 1, overflow: 'auto' }}>
+        <TableContainer
+          component={Paper}
+          sx={{ flex: 1, overflow: 'auto' }}
+          ref={tableContainerRef}
+        >
           <Table size="small" stickyHeader>
             <TableHead>
               <TableRow>
@@ -455,9 +499,49 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
                   )}
                 </TableRow>
               ))}
+              {/* Sentinel row for infinite scroll */}
+              {hasMore && (
+                <TableRow ref={sentinelRef}>
+                  <TableCell
+                    colSpan={isAdmin && onDeletePV ? 5 : 4}
+                    sx={{ textAlign: 'center', py: 2 }}
+                  >
+                    {isLoadingMore && (
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 1,
+                        }}
+                      >
+                        <CircularProgress size={20} />
+                        <Typography variant="body2" color="text.secondary">
+                          Loading more PVs...
+                        </Typography>
+                      </Box>
+                    )}
+                  </TableCell>
+                </TableRow>
+              )}
+              {/* End of list indicator */}
+              {!hasMore && filteredPVs.length > 0 && (
+                <TableRow>
+                  <TableCell
+                    colSpan={isAdmin && onDeletePV ? 5 : 4}
+                    sx={{ textAlign: 'center', py: 2 }}
+                  >
+                    <Typography variant="body2" color="text.secondary">
+                      {hasActiveFilters
+                        ? `Showing ${filteredPVs.length} of ${pvs.length} PVs`
+                        : `All ${pvs.length} PVs loaded`}
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
-          {filteredPVs.length === 0 && (
+          {filteredPVs.length === 0 && !isLoadingMore && (
             <Box sx={{ p: 5, textAlign: 'center' }}>
               <Typography variant="body1" color="text.secondary">
                 {searchText || hasActiveFilters

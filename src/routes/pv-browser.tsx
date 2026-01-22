@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { PVBrowserPage } from '../pages';
 import { PV, Severity, Status } from '../types';
 import { pvService, tagsService } from '../services';
@@ -20,7 +20,6 @@ function PVBrowser() {
   const [continuationToken, setContinuationToken] = useState<string | undefined>(undefined);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [isLoadingAll, setIsLoadingAll] = useState(false);
   const [tagGroupMap, setTagGroupMap] = useState<TagGroupMap>(new Map());
   const [searchQuery, setSearchQuery] = useState<string>('');
   const { isAdminMode } = useAdminMode();
@@ -99,7 +98,7 @@ function PVBrowser() {
     }
   };
 
-  const loadMorePVs = async () => {
+  const loadMorePVs = useCallback(async () => {
     if (!hasMore || isLoadingMore) return;
 
     try {
@@ -119,16 +118,13 @@ function PVBrowser() {
     } finally {
       setIsLoadingMore(false);
     }
-  };
+  }, [hasMore, isLoadingMore, searchQuery, continuationToken, tagGroupMap]);
 
   const loadAllPVs = async () => {
-    if (isLoadingAll) return;
-
     const startTime = performance.now();
     console.log('Starting to load all PVs...');
 
     try {
-      setIsLoadingAll(true);
       let allPVs: PV[] = [];
       let token: string | undefined = undefined;
       let pageCount = 0;
@@ -163,8 +159,6 @@ function PVBrowser() {
       console.log(`Time taken: ${duration} seconds`);
     } catch (err) {
       console.error('Failed to load all PVs:', err);
-    } finally {
-      setIsLoadingAll(false);
     }
   };
 
@@ -346,60 +340,18 @@ function PVBrowser() {
   }
 
   return (
-    <div>
-      <PVBrowserPage
-        pvs={pvs}
-        onAddPV={handleAddPV}
-        onUpdatePV={handleUpdatePV}
-        onImportPVs={handleImportPVs}
-        onDeletePV={handleDeletePV}
-        onPVClick={handlePVClick}
-        isAdmin={isAdminMode}
-        searchText={searchQuery}
-        onSearchChange={setSearchQuery}
-      />
-      {hasMore && (
-        <div
-          style={{
-            padding: '20px',
-            textAlign: 'center',
-            display: 'flex',
-            gap: '10px',
-            justifyContent: 'center',
-          }}
-        >
-          <button
-            onClick={loadMorePVs}
-            disabled={isLoadingMore || isLoadingAll}
-            style={{
-              padding: '10px 20px',
-              fontSize: '16px',
-              cursor: isLoadingMore || isLoadingAll ? 'not-allowed' : 'pointer',
-              backgroundColor: isLoadingMore || isLoadingAll ? '#ccc' : '#0066cc',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-            }}
-          >
-            {isLoadingMore ? 'Loading...' : `Load More (${pvs.length} loaded)`}
-          </button>
-          <button
-            onClick={loadAllPVs}
-            disabled={isLoadingAll || isLoadingMore}
-            style={{
-              padding: '10px 20px',
-              fontSize: '16px',
-              cursor: isLoadingAll || isLoadingMore ? 'not-allowed' : 'pointer',
-              backgroundColor: isLoadingAll || isLoadingMore ? '#ccc' : '#cc6600',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-            }}
-          >
-            {isLoadingAll ? 'Loading All...' : 'Load All PVs'}
-          </button>
-        </div>
-      )}
-    </div>
+    <PVBrowserPage
+      pvs={pvs}
+      onAddPV={handleAddPV}
+      onImportPVs={handleImportPVs}
+      onDeletePV={handleDeletePV}
+      onPVClick={handlePVClick}
+      isAdmin={isAdminMode}
+      searchText={searchQuery}
+      onSearchChange={setSearchQuery}
+      onLoadMore={loadMorePVs}
+      hasMore={hasMore}
+      isLoadingMore={isLoadingMore}
+    />
   );
 }

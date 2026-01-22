@@ -52,8 +52,6 @@ export const TagPage: React.FC<TagPageProps> = ({
   onEditTag,
   onDeleteTag,
 }) => {
-  isAdmin = false;
-
   const [dialogOpen, setDialogOpen] = useState(false);
   const [tagDialogOpen, setTagDialogOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<TagGroup | null>(null);

@@ -9,12 +9,6 @@ import {
   DialogActions,
   Typography,
   CircularProgress,
-  Chip,
-  Select,
-  MenuItem,
-  FormControl,
-  Checkbox,
-  ListItemText,
   Link,
   List,
   ListItem,
@@ -23,7 +17,7 @@ import {
 } from '@mui/material';
 import { Restore, Add } from '@mui/icons-material';
 import { Snapshot, PV, AnyEpicsType } from '../types';
-import { SnapshotHeader, SearchBar, PVTable } from '../components';
+import { SnapshotHeader, SearchBar, PVTable, TagGroupSelect } from '../components';
 import { tagsService, snapshotService } from '../services';
 import { SnapshotSummaryDTO } from '../types/api';
 
@@ -213,98 +207,41 @@ export const SnapshotDetailsPage: React.FC<SnapshotDetailsPageProps> = ({
       {/* Tag Filter Bar */}
       <Box sx={{ mb: 2, flexShrink: 0 }}>
         <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-          {hasActiveFilters && (
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ fontStyle: 'italic', mr: 1 }}
-            >
-              Filtering {snapshot.pvs.length} loaded PVs
-            </Typography>
-          )}
-          {tagGroups.map((group) => {
-            const options = tagGroupOptions[group.name] || [];
-            const selectedValues = activeFilters[group.name] || [];
-
-            return (
-              <FormControl key={group.id} size="small" sx={{ minWidth: 'auto' }}>
-                <Select
-                  multiple
-                  value={selectedValues}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setActiveFilters({
-                      ...activeFilters,
-                      [group.name]: typeof value === 'string' ? value.split(',') : value,
-                    });
-                  }}
-                  displayEmpty
-                  renderValue={(selected) => {
-                    if (selected.length === 0) {
-                      return (
-                        <Chip
-                          label={group.name}
-                          size="small"
-                          variant="outlined"
-                          sx={{
-                            borderRadius: '16px',
-                            height: '24px',
-                            '& .MuiChip-label': { px: 1.5 },
-                          }}
-                        />
-                      );
-                    }
-                    return (
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                        {selected.map((value) => (
-                          <Chip
-                            key={value}
-                            label={
-                              <span>
-                                {group.name} | <span style={{ color: '#1976d2' }}>{value}</span>
-                              </span>
-                            }
-                            size="small"
-                            variant="outlined"
-                            sx={{
-                              borderRadius: '16px',
-                              height: '24px',
-                              '& .MuiChip-label': { px: 1.5 },
-                            }}
-                          />
-                        ))}
-                      </Box>
-                    );
-                  }}
-                  sx={{
-                    '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-                    '& .MuiSelect-select': {
-                      padding: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                    },
-                  }}
-                >
-                  {options.map((tag) => (
-                    <MenuItem key={tag.id} value={tag.name}>
-                      <Checkbox checked={selectedValues.indexOf(tag.name) > -1} />
-                      <ListItemText primary={tag.name} />
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            );
-          })}
+          {tagGroups.map((group) => (
+            <TagGroupSelect
+              key={group.id}
+              groupId={group.id}
+              groupName={group.name}
+              tags={tagGroupOptions[group.name] || []}
+              selectedValues={activeFilters[group.name] || []}
+              onChange={(groupName, selectedIds) => {
+                setActiveFilters({
+                  ...activeFilters,
+                  [groupName]: selectedIds,
+                });
+              }}
+              useIds={false}
+            />
+          ))}
 
           {hasActiveFilters && (
-            <Link
-              component="button"
-              variant="body2"
-              onClick={clearFilters}
-              sx={{ ml: 1, cursor: 'pointer', textDecoration: 'none', color: 'primary.main' }}
-            >
-              x Clear Filters
-            </Link>
+            <>
+              <Link
+                component="button"
+                variant="body2"
+                onClick={clearFilters}
+                sx={{ ml: 1, cursor: 'pointer', textDecoration: 'none', color: 'primary.main' }}
+              >
+                x Clear Filters
+              </Link>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ fontStyle: 'italic', ml: 1 }}
+              >
+                Filtering {snapshot.pvs.length} loaded PVs
+              </Typography>
+            </>
           )}
         </Stack>
       </Box>

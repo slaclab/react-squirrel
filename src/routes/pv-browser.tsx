@@ -4,6 +4,7 @@ import { PVBrowserPage } from '../pages';
 import { PV, Severity, Status } from '../types';
 import { pvService, tagsService } from '../services';
 import { ParsedCSVRow, createTagMapping } from '../utils/csvParser';
+import { useAdminMode } from '../contexts/AdminModeContext';
 
 export const Route = createFileRoute('/pv-browser')({
   component: PVBrowser,
@@ -22,6 +23,7 @@ function PVBrowser() {
   const [isLoadingAll, setIsLoadingAll] = useState(false);
   const [tagGroupMap, setTagGroupMap] = useState<TagGroupMap>(new Map());
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const { isAdminMode } = useAdminMode();
 
   const PAGE_SIZE = 100; // Load 100 PVs at a time
 
@@ -144,7 +146,9 @@ function PVBrowser() {
         token = response.continuationToken;
         pageCount++;
 
-        console.log(`Loaded page ${pageCount}: ${response.results.length} PVs (total: ${allPVs.length})`);
+        console.log(
+          `Loaded page ${pageCount}: ${response.results.length} PVs (total: ${allPVs.length})`
+        );
       } while (token);
 
       setPVs(allPVs);
@@ -310,6 +314,29 @@ function PVBrowser() {
     }
   };
 
+  const handleUpdatePV = async (
+    pvId: string,
+    updates: {
+      description?: string;
+      absTolerance?: number;
+      relTolerance?: number;
+      tags?: string[];
+    }
+  ) => {
+    try {
+      await pvService.updatePV(pvId, {
+        description: updates.description,
+        absTolerance: updates.absTolerance,
+        relTolerance: updates.relTolerance,
+        tags: updates.tags,
+      });
+      await fetchInitialPVs(tagGroupMap, searchQuery); // Refresh the list
+    } catch (err) {
+      console.error('Failed to update PV:', err);
+      throw err; // Re-throw to let the UI handle the error
+    }
+  };
+
   const handlePVClick = (pv: PV) => {
     console.log('PV clicked:', pv);
   };
@@ -327,15 +354,24 @@ function PVBrowser() {
       <PVBrowserPage
         pvs={pvs}
         onAddPV={handleAddPV}
+        onUpdatePV={handleUpdatePV}
         onImportPVs={handleImportPVs}
         onDeletePV={handleDeletePV}
         onPVClick={handlePVClick}
-        isAdmin={true}
+        isAdmin={isAdminMode}
         searchText={searchQuery}
         onSearchChange={setSearchQuery}
       />
       {hasMore && (
-        <div style={{ padding: '20px', textAlign: 'center', display: 'flex', gap: '10px', justifyContent: 'center' }}>
+        <div
+          style={{
+            padding: '20px',
+            textAlign: 'center',
+            display: 'flex',
+            gap: '10px',
+            justifyContent: 'center',
+          }}
+        >
           <button
             onClick={loadMorePVs}
             disabled={isLoadingMore || isLoadingAll}

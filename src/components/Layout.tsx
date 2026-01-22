@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
 import { Box, AppBar, Toolbar, IconButton, Tooltip } from '@mui/material';
-import { Help as HelpIcon, BugReport as BugReportIcon } from '@mui/icons-material';
+import {
+  Help as HelpIcon,
+  BugReport as BugReportIcon,
+  AdminPanelSettings as AdminIcon,
+} from '@mui/icons-material';
 import { Sidebar } from './Sidebar';
-import { UserAvatar } from './UserAvatar';
+// import { UserAvatar } from './UserAvatar';
 import { CreateSnapshotDialog } from './CreateSnapshotDialog';
 import { LiveDataWarningBanner } from './LiveDataWarningBanner';
+import { useAdminMode } from '../contexts/AdminModeContext';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -13,6 +18,7 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [snapshotDialogOpen, setSnapshotDialogOpen] = useState(false);
+  const { isAdminMode, toggleAdminMode } = useAdminMode();
 
   const handleSidebarToggle = () => {
     setSidebarOpen(!sidebarOpen);
@@ -69,6 +75,17 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           }}
         >
           <Toolbar sx={{ justifyContent: 'flex-end', minHeight: '64px !important', gap: 1 }}>
+            <Tooltip
+              title={
+                isAdminMode
+                  ? 'Admin Mode (click to disable)'
+                  : 'Read-Only Mode (click to enable admin)'
+              }
+            >
+              <IconButton onClick={toggleAdminMode} color={isAdminMode ? 'primary' : 'inherit'}>
+                <AdminIcon />
+              </IconButton>
+            </Tooltip>
             <Tooltip title="Help">
               <IconButton onClick={handleHelpClick} color="inherit">
                 <HelpIcon />
@@ -79,7 +96,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <BugReportIcon />
               </IconButton>
             </Tooltip>
-            <UserAvatar userName="Test User" userInitials="T" isAdmin={true} />
+            {/* <UserAvatar userName="Test User" userInitials="T" isAdmin={true} /> */}
           </Toolbar>
         </AppBar>
 

@@ -27,12 +27,14 @@ interface SnapshotListPageProps {
   snapshots: Snapshot[];
   onSnapshotClick: (snapshot: Snapshot) => void;
   onDeleteSnapshot?: (snapshotId: string) => Promise<void>;
+  isAdmin: boolean;
 }
 
 export const SnapshotListPage: React.FC<SnapshotListPageProps> = ({
   snapshots,
   onSnapshotClick,
   onDeleteSnapshot,
+  isAdmin,
 }) => {
   const [searchText, setSearchText] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -134,7 +136,7 @@ export const SnapshotListPage: React.FC<SnapshotListPageProps> = ({
                   PV Count
                 </Typography>
               </TableCell>
-              {onDeleteSnapshot && (
+              {isAdmin && (
                 <TableCell align="center" sx={{ width: 60 }}>
                   <Typography variant="subtitle2" fontWeight="bold">
                     Actions
@@ -167,13 +169,14 @@ export const SnapshotListPage: React.FC<SnapshotListPageProps> = ({
                 <TableCell align="right">
                   <Typography variant="body2">{snapshot.pvCount ?? snapshot.pvs.length}</Typography>
                 </TableCell>
-                {onDeleteSnapshot && (
+                {isAdmin && (
                   <TableCell align="center">
                     <IconButton
                       size="small"
                       color="error"
                       onClick={(e) => handleDeleteClick(e, snapshot)}
                       title="Delete snapshot"
+                      disabled={!onDeleteSnapshot}
                     >
                       <Delete fontSize="small" />
                     </IconButton>
@@ -197,8 +200,8 @@ export const SnapshotListPage: React.FC<SnapshotListPageProps> = ({
         <DialogTitle>Delete Snapshot</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to delete the snapshot "{snapshotToDelete?.title}"?
-            This action cannot be undone.
+            Are you sure you want to delete the snapshot &apos;{snapshotToDelete?.title}&apos;? This
+            action cannot be undone.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
@@ -209,7 +212,7 @@ export const SnapshotListPage: React.FC<SnapshotListPageProps> = ({
             onClick={handleDeleteConfirm}
             color="error"
             variant="contained"
-            disabled={isDeleting}
+            disabled={isDeleting || !onDeleteSnapshot}
           >
             {isDeleting ? 'Deleting...' : 'Delete'}
           </Button>

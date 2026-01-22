@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Stack,
@@ -65,6 +65,16 @@ export const TagPage: React.FC<TagPageProps> = ({
   const [tagDescription, setTagDescription] = useState('');
   const [newTagName, setNewTagName] = useState('');
 
+  // Sync selectedGroup when tagGroups prop changes
+  useEffect(() => {
+    if (selectedGroup) {
+      const updatedGroup = tagGroups.find((g) => g.id === selectedGroup.id);
+      if (updatedGroup) {
+        setSelectedGroup(updatedGroup);
+      }
+    }
+  }, [tagGroups]);
+
   const handleOpenDialog = (group?: TagGroup) => {
     if (group) {
       setSelectedGroup(group);
@@ -107,6 +117,8 @@ export const TagPage: React.FC<TagPageProps> = ({
   const handleCloseTagDialog = () => {
     setTagDialogOpen(false);
     setSelectedTag(null);
+    setTagName('');
+    setTagDescription('');
   };
 
   const handleSave = async () => {
@@ -155,10 +167,6 @@ export const TagPage: React.FC<TagPageProps> = ({
 
     try {
       await onEditTag(selectedGroup.id, tag.name, tagName, tagDescription);
-      const updatedGroup = tagGroups.find((g) => g.id === selectedGroup.id);
-      if (updatedGroup) {
-        setSelectedGroup(updatedGroup);
-      }
     } catch (err) {
       console.error('Failed to edit tag:', err);
       alert('Failed to edit tag: ' + (err instanceof Error ? err.message : 'Unknown error'));
@@ -430,9 +438,11 @@ export const TagPage: React.FC<TagPageProps> = ({
           {isAdmin && (
             <Button
               variant="contained"
-              onClick={() => {
+              onClick={async (e) => {
+                e.stopPropagation();
                 if (selectedTag) {
-                  handleEditTag(selectedTag);
+                  await handleEditTag(selectedTag);
+                  handleCloseTagDialog();
                 }
               }}
             >

@@ -127,7 +127,22 @@ function Tags() {
         name: newTagName,
         description: newTagDescription,
       });
-      await fetchTagGroups();
+
+      // Update local state for this specific group
+      setTagGroups((prevGroups) =>
+        prevGroups.map((group) =>
+          group.id === groupId
+            ? {
+                ...group,
+                tags: group.tags.map((tag) =>
+                  tag.name === tagName
+                    ? { ...tag, name: newTagName, description: newTagDescription }
+                    : tag
+                ),
+              }
+            : group
+        )
+      );
     } catch (err) {
       console.error('Failed to edit tag:', err);
       throw err;

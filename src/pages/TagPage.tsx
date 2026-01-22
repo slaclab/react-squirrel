@@ -23,7 +23,7 @@ import {
   ListItemSecondaryAction,
   Chip,
 } from '@mui/material';
-import { Add, Delete, Edit } from '@mui/icons-material';
+import { Add, Delete, Edit, NoteOutlined } from '@mui/icons-material';
 import { TagGroup, Tag } from '../types';
 
 interface TagPageProps {
@@ -52,6 +52,8 @@ export const TagPage: React.FC<TagPageProps> = ({
   onEditTag,
   onDeleteTag,
 }) => {
+  isAdmin = false;
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [tagDialogOpen, setTagDialogOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<TagGroup | null>(null);
@@ -335,7 +337,7 @@ export const TagPage: React.FC<TagPageProps> = ({
                   <ListItem key={idx}>
                     <ListItemText primary={tag.name} />
                     <ListItemSecondaryAction>
-                      {isAdmin && onEditTag && (
+                      {onEditTag && (
                         <IconButton
                           edge="end"
                           aria-label="edit tag"
@@ -343,7 +345,7 @@ export const TagPage: React.FC<TagPageProps> = ({
                           onClick={() => handleOpenTagDialog(tag)}
                           color="default"
                         >
-                          <Edit fontSize="small" />
+                          {isAdmin ? <Edit fontSize="small" /> : <NoteOutlined fontSize="small" />}
                         </IconButton>
                       )}
                       {isAdmin && onDeleteTag && (
@@ -410,7 +412,7 @@ export const TagPage: React.FC<TagPageProps> = ({
         maxWidth="xs"
         fullWidth
       >
-        <DialogTitle>{editMode && selectedTag ? 'Edit Tag' : 'New Tag'}</DialogTitle>
+        <DialogTitle>{isAdmin ? 'Edit Tag' : 'Tag Details'}</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 1 }}>
             <TextField

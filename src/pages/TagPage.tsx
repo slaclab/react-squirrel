@@ -308,8 +308,8 @@ export const TagPage: React.FC<TagPageProps> = ({
         <DialogTitle>
           {isAdmin ? (editMode ? 'Edit Tag Group' : 'New Tag Group') : 'Tag Group Details'}
         </DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 1 }}>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', p: 0 }}>
+          <Box sx={{ px: 3, pt: 1, borderBottom: '1px solid #eee' }}>
             <TextField
               fullWidth
               label="Title"
@@ -329,10 +329,13 @@ export const TagPage: React.FC<TagPageProps> = ({
               rows={2}
             />
             <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>
-              Tags
+              Tags:
             </Typography>
+          </Box>
+
+          <Box sx={{ flex: 1, overflowY: 'auto', px: 3, py: 1 }}>
             {selectedGroup && selectedGroup.tags.length > 0 ? (
-              <List dense>
+              <List dense sx={{ p: 0 }}>
                 {selectedGroup.tags.map((tag, idx) => (
                   <ListItem key={idx}>
                     <ListItemText primary={tag.name} />
@@ -364,12 +367,15 @@ export const TagPage: React.FC<TagPageProps> = ({
                 ))}
               </List>
             ) : (
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
                 No tags in this group
               </Typography>
             )}
-            {isAdmin && editMode && onAddTag && (
-              <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
+          </Box>
+
+          {isAdmin && editMode && onAddTag && (
+            <Box sx={{ px: 3, py: 2, borderTop: '1px solid #eee' }}>
+              <Box sx={{ display: 'flex', gap: 1 }}>
                 <TextField
                   size="small"
                   label="New Tag Name"
@@ -392,8 +398,8 @@ export const TagPage: React.FC<TagPageProps> = ({
                   Add
                 </Button>
               </Box>
-            )}
-          </Box>
+            </Box>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>{isAdmin ? 'Cancel' : 'Close'}</Button>

@@ -338,7 +338,19 @@ export const TagPage: React.FC<TagPageProps> = ({
                 {selectedGroup.tags.map((tag, idx) => (
                   <>
                     <ListItem key={idx}>
-                      <ListItemText primary={tag.name} secondary={tag.description} />
+                      <ListItemText
+                        primary={tag.name}
+                        secondary={tag.description}
+                        sx={{ pr: 3, overflow: 'hidden' }}
+                        secondaryTypographyProps={{
+                          variant: 'subtitle2',
+                          style: {
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          },
+                        }}
+                      />
                       <ListItemSecondaryAction>
                         {onEditTag && (
                           <IconButton

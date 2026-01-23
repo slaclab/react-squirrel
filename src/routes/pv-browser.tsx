@@ -341,10 +341,6 @@ function PVBrowser() {
     console.log('PV clicked:', pv);
   };
 
-  if (loading) {
-    return <div>Loading PVs...</div>;
-  }
-
   if (error) {
     return <div>Error: {error}</div>;
   }

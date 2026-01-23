@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Stack,
@@ -20,16 +20,11 @@ import {
   List,
   ListItem,
   ListItemText,
+  ListItemSecondaryAction,
   Chip,
 } from '@mui/material';
-import { Add, Delete } from '@mui/icons-material';
-
-interface TagGroup {
-  id: string;
-  name: string;
-  description: string;
-  tags: string[];
-}
+import { Add, Delete, Edit, NoteOutlined } from '@mui/icons-material';
+import { TagGroup, Tag } from '../types';
 
 interface TagPageProps {
   tagGroups?: TagGroup[];
@@ -38,7 +33,13 @@ interface TagPageProps {
   onEditGroup?: (id: string, name: string, description: string) => void;
   onDeleteGroup?: (id: string) => void;
   onAddTag?: (groupId: string, tagName: string) => Promise<void>;
-  onDeleteTag?: (groupId: string, tagId: string) => Promise<void>;
+  onEditTag?: (
+    groupId: string,
+    tagName: string,
+    name: string,
+    description: string
+  ) => Promise<void>;
+  onDeleteTag?: (groupId: string, tagName: string) => Promise<void>;
 }
 
 export const TagPage: React.FC<TagPageProps> = ({
@@ -48,16 +49,31 @@ export const TagPage: React.FC<TagPageProps> = ({
   onEditGroup,
   onDeleteGroup,
   onAddTag,
+  onEditTag,
   onDeleteTag,
 }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [tagDialogOpen, setTagDialogOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<TagGroup | null>(null);
+  const [selectedTag, setSelectedTag] = useState<Tag | null>(null);
   const [editMode, setEditMode] = useState(false);
 
   // Form state
   const [groupName, setGroupName] = useState('');
+  const [tagName, setTagName] = useState('');
   const [groupDescription, setGroupDescription] = useState('');
+  const [tagDescription, setTagDescription] = useState('');
   const [newTagName, setNewTagName] = useState('');
+
+  // Sync selectedGroup when tagGroups prop changes
+  useEffect(() => {
+    if (selectedGroup) {
+      const updatedGroup = tagGroups.find((g) => g.id === selectedGroup.id);
+      if (updatedGroup) {
+        setSelectedGroup(updatedGroup);
+      }
+    }
+  }, [tagGroups]);
 
   const handleOpenDialog = (group?: TagGroup) => {
     if (group) {
@@ -81,6 +97,28 @@ export const TagPage: React.FC<TagPageProps> = ({
     setGroupName('');
     setGroupDescription('');
     setNewTagName('');
+  };
+
+  const handleOpenTagDialog = (tag?: Tag) => {
+    if (tag) {
+      setSelectedTag(tag);
+      setTagName(tag.name);
+      setTagDescription(tag.description || '');
+      setEditMode(true);
+    } else {
+      setSelectedTag(null);
+      setTagName('');
+      setTagDescription('');
+      setEditMode(false);
+    }
+    setTagDialogOpen(true);
+  };
+
+  const handleCloseTagDialog = () => {
+    setTagDialogOpen(false);
+    setSelectedTag(null);
+    setTagName('');
+    setTagDescription('');
   };
 
   const handleSave = async () => {
@@ -114,7 +152,7 @@ export const TagPage: React.FC<TagPageProps> = ({
       await onAddTag(selectedGroup.id, newTagName);
       setNewTagName('');
       // Refresh the selected group data
-      const updatedGroup = tagGroups.find(g => g.id === selectedGroup.id);
+      const updatedGroup = tagGroups.find((g) => g.id === selectedGroup.id);
       if (updatedGroup) {
         setSelectedGroup(updatedGroup);
       }
@@ -124,17 +162,28 @@ export const TagPage: React.FC<TagPageProps> = ({
     }
   };
 
-  const handleDeleteTag = async (tagName: string) => {
-    if (!confirm(`Delete tag "${tagName}"?`)) return;
+  const handleEditTag = async (tag: Tag) => {
+    if (!selectedGroup || !onEditTag) return;
+
+    try {
+      await onEditTag(selectedGroup.id, tag.name, tagName, tagDescription);
+    } catch (err) {
+      console.error('Failed to edit tag:', err);
+      alert('Failed to edit tag: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    }
+  };
+
+  const handleDeleteTag = async (tag: Tag) => {
+    if (!confirm(`Delete tag "${tag.name}"?`)) return;
 
     if (!selectedGroup || !onDeleteTag) return;
 
     try {
       // We need to find the tag ID - for now we're using tag name
       // The backend API expects tag ID, so we'll need to update this
-      await onDeleteTag(selectedGroup.id, tagName);
+      await onDeleteTag(selectedGroup.id, tag.name);
       // Refresh the selected group data
-      const updatedGroup = tagGroups.find(g => g.id === selectedGroup.id);
+      const updatedGroup = tagGroups.find((g) => g.id === selectedGroup.id);
       if (updatedGroup) {
         setSelectedGroup(updatedGroup);
       }
@@ -150,12 +199,23 @@ export const TagPage: React.FC<TagPageProps> = ({
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', p: 2 }}>
-      <Stack direction="row" spacing={2} sx={{ mb: 2 }} alignItems="center" justifyContent="space-between">
+      <Stack
+        direction="row"
+        spacing={2}
+        sx={{ mb: 2 }}
+        alignItems="center"
+        justifyContent="space-between"
+      >
         <Typography variant="h5" fontWeight="bold">
           Tag Groups
         </Typography>
         {isAdmin && onAddGroup && (
-          <Button variant="contained" startIcon={<Add />} onClick={() => handleOpenDialog()} size="medium">
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => handleOpenDialog()}
+            size="medium"
+          >
             New Group
           </Button>
         )}
@@ -236,7 +296,7 @@ export const TagPage: React.FC<TagPageProps> = ({
             </Typography>
             {isAdmin && (
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                Click "New Group" to create your first tag group
+                Click &quot;New Group&quot; to create your first tag group
               </Typography>
             )}
           </Box>
@@ -246,10 +306,10 @@ export const TagPage: React.FC<TagPageProps> = ({
       {/* Tag Group Dialog */}
       <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
         <DialogTitle>
-          {editMode ? (selectedGroup?.name || 'Tag Group') : 'New Tag Group'}
+          {isAdmin ? (editMode ? 'Edit Tag Group' : 'New Tag Group') : 'Tag Group Details'}
         </DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 1 }}>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', p: 0 }}>
+          <Box sx={{ px: 3, pt: 1, borderBottom: '1px solid #eee' }}>
             <TextField
               fullWidth
               label="Title"
@@ -269,15 +329,29 @@ export const TagPage: React.FC<TagPageProps> = ({
               rows={2}
             />
             <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>
-              Tags
+              Tags:
             </Typography>
+          </Box>
+
+          <Box sx={{ flex: 1, overflowY: 'auto', px: 3, py: 1 }}>
             {selectedGroup && selectedGroup.tags.length > 0 ? (
-              <List dense>
+              <List dense sx={{ p: 0 }}>
                 {selectedGroup.tags.map((tag, idx) => (
-                  <ListItem
-                    key={idx}
-                    secondaryAction={
-                      isAdmin && onDeleteTag && (
+                  <ListItem key={idx}>
+                    <ListItemText primary={tag.name} />
+                    <ListItemSecondaryAction>
+                      {onEditTag && (
+                        <IconButton
+                          edge="end"
+                          aria-label="edit tag"
+                          size="small"
+                          onClick={() => handleOpenTagDialog(tag)}
+                          color="default"
+                        >
+                          {isAdmin ? <Edit fontSize="small" /> : <NoteOutlined fontSize="small" />}
+                        </IconButton>
+                      )}
+                      {isAdmin && onDeleteTag && (
                         <IconButton
                           edge="end"
                           aria-label="delete"
@@ -287,20 +361,21 @@ export const TagPage: React.FC<TagPageProps> = ({
                         >
                           <Delete fontSize="small" />
                         </IconButton>
-                      )
-                    }
-                  >
-                    <ListItemText primary={tag} />
+                      )}
+                    </ListItemSecondaryAction>
                   </ListItem>
                 ))}
               </List>
             ) : (
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
                 No tags in this group
               </Typography>
             )}
-            {isAdmin && editMode && onAddTag && (
-              <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
+          </Box>
+
+          {isAdmin && editMode && onAddTag && (
+            <Box sx={{ px: 3, py: 2, borderTop: '1px solid #eee' }}>
+              <Box sx={{ display: 'flex', gap: 1 }}>
                 <TextField
                   size="small"
                   label="New Tag Name"
@@ -323,14 +398,65 @@ export const TagPage: React.FC<TagPageProps> = ({
                   Add
                 </Button>
               </Box>
-            )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog}>{isAdmin ? 'Cancel' : 'Close'}</Button>
+          {isAdmin && (
+            <Button variant="contained" onClick={handleSave}>
+              Save
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
+
+      {/* Tag Dialog */}
+      <Dialog
+        open={dialogOpen && tagDialogOpen}
+        onClose={handleCloseTagDialog}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>{isAdmin ? 'Edit Tag' : 'Tag Details'}</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 1 }}>
+            <TextField
+              fullWidth
+              label="Tag Name"
+              value={tagName}
+              onChange={(e) => setTagName(e.target.value)}
+              margin="normal"
+              disabled={!isAdmin}
+            />
+            <TextField
+              fullWidth
+              label="Tag Description"
+              value={tagDescription}
+              onChange={(e) => setTagDescription(e.target.value)}
+              margin="normal"
+              disabled={!isAdmin}
+              multiline
+              rows={2}
+            />
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialog}>
-            {isAdmin ? 'Cancel' : 'Close'}
-          </Button>
-          {isAdmin && <Button variant="contained" onClick={handleSave}>Save</Button>}
+          <Button onClick={handleCloseTagDialog}>{isAdmin ? 'Cancel' : 'Close'}</Button>
+          {isAdmin && (
+            <Button
+              variant="contained"
+              onClick={async (e) => {
+                e.stopPropagation();
+                if (selectedTag) {
+                  await handleEditTag(selectedTag);
+                  handleCloseTagDialog();
+                }
+              }}
+            >
+              Save
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
     </Box>

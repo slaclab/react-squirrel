@@ -1,8 +1,8 @@
-# React Squirrel
+# Squirrel
 
-Modern web-based frontend for Configuration Management of EPICS Process Variables (PVs).
+A web-based application for configuration management of EPICS Process Variables (PVs).
 
-React Squirrel provides a responsive, high-performance interface for creating snapshots of control system states, comparing configurations, and managing PV settings. It communicates with a backend API (score-backend) that handles persistence and EPICS control system integration.
+Squirrel provides a responsive, high-performance interface for creating snapshots of control system states, comparing configurations, and managing PV settings. It communicates with a backend API (score-backend) that handles persistence and EPICS control system integration.
 
 ## Features
 

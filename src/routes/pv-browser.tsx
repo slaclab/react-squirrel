@@ -10,8 +10,14 @@ export const Route = createFileRoute('/pv-browser')({
   component: PVBrowser,
 });
 
-// Map to store tag ID -> group name mapping
-type TagGroupMap = Map<string, string>; // tagId -> groupName
+type TagGroupMap = Map<string, string>; // tagId -> groupId
+
+// Tag group info for the page
+interface TagGroupInfo {
+  id: string;
+  name: string;
+  tags: Array<{ id: string; name: string }>;
+}
 
 function PVBrowser() {
   const [pvs, setPVs] = useState<PV[]>([]);
@@ -20,8 +26,11 @@ function PVBrowser() {
   const [continuationToken, setContinuationToken] = useState<string | undefined>(undefined);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isLoadingAll, setIsLoadingAll] = useState(false);
   const [tagGroupMap, setTagGroupMap] = useState<TagGroupMap>(new Map());
+  const [tagGroups, setTagGroups] = useState<TagGroupInfo[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
   const { isAdminMode } = useAdminMode();
 
   const PAGE_SIZE = 100; // Load 100 PVs at a time
@@ -30,17 +39,15 @@ function PVBrowser() {
     fetchTagGroupsAndPVs();
   }, []);
 
-  // Handle search query changes with debouncing
+  // Handle search query or filter changes with debouncing
   useEffect(() => {
     const delayTimer = setTimeout(() => {
       // When search query changes, fetch new results
-      if (tagGroupMap.size > 0) {
-        fetchInitialPVs(tagGroupMap, searchQuery);
-      }
+      fetchInitialPVs(tagGroupMap, searchQuery, activeFilters);
     }, 300); // 300ms debounce
 
     return () => clearTimeout(delayTimer);
-  }, [searchQuery]);
+  }, [searchQuery, activeFilters, tagGroupMap]);
 
   const fetchTagGroupsAndPVs = async () => {
     try {
@@ -50,15 +57,21 @@ function PVBrowser() {
       // Fetch tag groups first to build the mapping
       const summaries = await tagsService.findAllTagGroups();
       const tagMap = new Map<string, string>();
+      const groupsInfo: TagGroupInfo[] = [];
 
       await Promise.all(
         summaries.map(async (summary) => {
           try {
             const details = await tagsService.getTagGroupById(summary.id);
             const group = details[0];
-            // Map each tag ID to its group name
+            // Map each tag ID to its group ID
             group.tags.forEach((tag) => {
-              tagMap.set(tag.id, group.name);
+              tagMap.set(tag.id, group.id);
+            });
+            groupsInfo.push({
+              id: group.id,
+              name: group.name,
+              tags: group.tags,
             });
           } catch (err) {
             console.error(`Failed to fetch details for group ${summary.id}:`, err);
@@ -67,22 +80,61 @@ function PVBrowser() {
       );
 
       setTagGroupMap(tagMap);
+      setTagGroups(groupsInfo);
 
       // Now fetch PVs
-      await fetchInitialPVs(tagMap);
+      await fetchInitialPVs(tagMap, '', {});
     } catch (err) {
       console.error('Failed to initialize:', err);
       setError(err instanceof Error ? err.message : 'Failed to initialize');
     }
   };
 
-  const fetchInitialPVs = async (tagMap: TagGroupMap, searchText: string = '') => {
+  // Convert activeFilters (by group name with tag names) to tagFilters (by group ID with tag IDs)
+  const buildTagFilters = (
+    filters: Record<string, string[]>,
+    groups: TagGroupInfo[]
+  ): Record<string, string[]> => {
+    const tagFilters: Record<string, string[]> = {};
+
+    Object.entries(filters).forEach(([groupName, tagNames]) => {
+      if (tagNames && tagNames.length > 0) {
+        // Find the group by name
+        const group = groups.find((g) => g.name === groupName);
+        if (group) {
+          // Convert tag names to tag IDs
+          const tagIds = tagNames
+            .map((tagName) => {
+              const tag = group.tags.find((t) => t.name === tagName);
+              return tag?.id;
+            })
+            .filter((id): id is string => id !== undefined);
+
+          if (tagIds.length > 0) {
+            tagFilters[group.id] = tagIds;
+          }
+        }
+      }
+    });
+
+    return tagFilters;
+  };
+
+  const fetchInitialPVs = async (
+    tagMap: TagGroupMap,
+    searchText: string = '',
+    filters: Record<string, string[]> = {}
+  ) => {
     try {
       setLoading(true);
       setError(null);
+
+      const tagFilters = buildTagFilters(filters, tagGroups);
+
       const response = await pvService.findPVsPaged({
         pvName: searchText,
         pageSize: PAGE_SIZE,
+        tagFilters: Object.keys(tagFilters).length > 0 ? tagFilters : undefined,
       });
 
       const formattedPVs = formatPVs(response.results, tagMap);
@@ -103,10 +155,14 @@ function PVBrowser() {
 
     try {
       setIsLoadingMore(true);
+
+      const tagFilters = buildTagFilters(activeFilters, tagGroups);
+
       const response = await pvService.findPVsPaged({
         pvName: searchQuery,
         continuationToken,
         pageSize: PAGE_SIZE,
+        tagFilters: Object.keys(tagFilters).length > 0 ? tagFilters : undefined,
       });
 
       const formattedPVs = formatPVs(response.results, tagGroupMap);
@@ -118,16 +174,29 @@ function PVBrowser() {
     } finally {
       setIsLoadingMore(false);
     }
-  }, [hasMore, isLoadingMore, searchQuery, continuationToken, tagGroupMap]);
+  }, [
+    hasMore,
+    isLoadingMore,
+    searchQuery,
+    continuationToken,
+    tagGroupMap,
+    activeFilters,
+    tagGroups,
+  ]);
 
   const loadAllPVs = async () => {
+    if (isLoadingAll) return;
+
     const startTime = performance.now();
     console.log('Starting to load all PVs...');
 
     try {
+      setIsLoadingAll(true);
       let allPVs: PV[] = [];
       let token: string | undefined = undefined;
       let pageCount = 0;
+
+      const tagFilters = buildTagFilters(activeFilters, tagGroups);
 
       // Load all pages
       do {
@@ -135,6 +204,7 @@ function PVBrowser() {
           pvName: searchQuery,
           continuationToken: token,
           pageSize: PAGE_SIZE,
+          tagFilters: Object.keys(tagFilters).length > 0 ? tagFilters : undefined,
         });
 
         const formattedPVs = formatPVs(response.results, tagGroupMap);
@@ -159,6 +229,8 @@ function PVBrowser() {
       console.log(`Time taken: ${duration} seconds`);
     } catch (err) {
       console.error('Failed to load all PVs:', err);
+    } finally {
+      setIsLoadingAll(false);
     }
   };
 
@@ -174,8 +246,10 @@ function PVBrowser() {
           pv.tags.forEach((tag: any) => {
             if (typeof tag === 'object' && tag.id && tag.name) {
               // Look up which group this tag belongs to
-              const groupName = tagMap.get(tag.id);
-              if (groupName) {
+              const groupId = tagMap.get(tag.id);
+              if (groupId) {
+                const group = tagGroups.find((g) => g.id === groupId);
+                const groupName = group?.name || groupId;
                 if (!tags[groupName]) {
                   tags[groupName] = {};
                 }
@@ -244,7 +318,7 @@ function PVBrowser() {
 
       console.log('Creating PV with payload:', payload);
       await pvService.createPV(payload);
-      await fetchInitialPVs(tagGroupMap, searchQuery); // Refresh the list with current search
+      await fetchInitialPVs(tagGroupMap, searchQuery, activeFilters); // Refresh the list with current search
     } catch (err) {
       console.error('Failed to add PV:', err);
       throw err; // Re-throw to let the UI handle the error
@@ -287,7 +361,7 @@ function PVBrowser() {
       await pvService.createMultiplePVs(pvPayloads);
 
       // Refresh the PV list
-      await fetchInitialPVs(tagGroupMap, searchQuery);
+      await fetchInitialPVs(tagGroupMap, searchQuery, activeFilters);
 
       alert(`Successfully imported ${csvData.length} PV${csvData.length !== 1 ? 's' : ''}`);
     } catch (err) {
@@ -301,7 +375,7 @@ function PVBrowser() {
 
     try {
       await pvService.deletePV(pv.uuid);
-      await fetchInitialPVs(tagGroupMap, searchQuery); // Refresh the list with current search
+      await fetchInitialPVs(tagGroupMap, searchQuery, activeFilters); // Refresh the list with current search
     } catch (err) {
       console.error('Failed to delete PV:', err);
       alert('Failed to delete PV: ' + (err instanceof Error ? err.message : 'Unknown error'));
@@ -324,7 +398,7 @@ function PVBrowser() {
         relTolerance: updates.relTolerance,
         tags: updates.tags,
       });
-      await fetchInitialPVs(tagGroupMap, searchQuery); // Refresh the list
+      await fetchInitialPVs(tagGroupMap, searchQuery, activeFilters); // Refresh the list
     } catch (err) {
       console.error('Failed to update PV:', err);
       throw err; // Re-throw to let the UI handle the error
@@ -335,6 +409,14 @@ function PVBrowser() {
     console.log('PV clicked:', pv);
   };
 
+  const handleFilterChange = (filters: Record<string, string[]>) => {
+    setActiveFilters(filters);
+  };
+
+  if (loading && pvs.length === 0) {
+    return <div>Loading PVs...</div>;
+  }
+
   if (error) {
     return <div>Error: {error}</div>;
   }
@@ -343,6 +425,7 @@ function PVBrowser() {
     <PVBrowserPage
       pvs={pvs}
       onAddPV={handleAddPV}
+      onUpdatePV={handleUpdatePV}
       onImportPVs={handleImportPVs}
       onDeletePV={handleDeletePV}
       onPVClick={handlePVClick}
@@ -352,6 +435,9 @@ function PVBrowser() {
       onLoadMore={loadMorePVs}
       hasMore={hasMore}
       isLoadingMore={isLoadingMore}
+      tagGroups={tagGroups}
+      activeFilters={activeFilters}
+      onFilterChange={handleFilterChange}
     />
   );
 }

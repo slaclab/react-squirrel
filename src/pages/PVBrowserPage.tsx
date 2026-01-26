@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Stack,
@@ -26,10 +26,15 @@ import {
 } from '@mui/material';
 import { Search, Add, Delete, Close, Upload } from '@mui/icons-material';
 import { PV } from '../types';
-import { tagsService } from '../services';
 import { CSVImportDialog } from '../components/CSVImportDialog';
 import { TagGroupSelect } from '../components/TagGroupSelect';
 import { ParsedCSVRow } from '../utils/csvParser';
+
+interface TagGroupInfo {
+  id: string;
+  name: string;
+  tags: Array<{ id: string; name: string }>;
+}
 
 interface PVBrowserPageProps {
   pvs: PV[];
@@ -59,29 +64,31 @@ interface PVBrowserPageProps {
   onLoadMore?: () => void;
   hasMore?: boolean;
   isLoadingMore?: boolean;
+  tagGroups?: TagGroupInfo[];
+  activeFilters?: Record<string, string[]>;
+  onFilterChange?: (filters: Record<string, string[]>) => void;
 }
 
 export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
-                                                              pvs,
-                                                              onAddPV,
-                                                              onUpdatePV,
-                                                              onImportPVs,
-                                                              onDeletePV,
-                                                              onPVClick,
-                                                              isAdmin = false,
-                                                              searchText = '',
-                                                              onSearchChange,
-                                                              onLoadMore,
-                                                              hasMore = false,
-                                                              isLoadingMore = false,
-                                                            }) => {
+  pvs,
+  onAddPV,
+  onUpdatePV,
+  onImportPVs,
+  onDeletePV,
+  onPVClick,
+  isAdmin = false,
+  searchText = '',
+  onSearchChange,
+  onLoadMore,
+  hasMore = false,
+  isLoadingMore = false,
+  tagGroups = [],
+  activeFilters = {},
+  onFilterChange,
+}) => {
   const [selectedPV, setSelectedPV] = useState<PV | null>(null);
   const [addPVDialogOpen, setAddPVDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
-  const [tagGroups, setTagGroups] = useState<
-    Array<{ id: string; name: string; tags: Array<{ id: string; name: string }> }>
-  >([]);
-  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
   const [newPVData, setNewPVData] = useState({
     pvName: '',
     readbackName: '',
@@ -103,40 +110,6 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
   const sentinelRef = useRef<HTMLTableRowElement>(null);
   const tableContainerRef = useRef<HTMLDivElement>(null);
 
-  // Fetch tag groups when component mounts
-  useEffect(() => {
-    const fetchTagGroups = async () => {
-      try {
-        const summaries = await tagsService.findAllTagGroups();
-        // Fetch detailed information for each tag group to get the tags
-        const detailedGroups = await Promise.all(
-          summaries.map(async (summary) => {
-            try {
-              const details = await tagsService.getTagGroupById(summary.id);
-              const group = details[0];
-              return {
-                id: group.id,
-                name: group.name,
-                tags: group.tags,
-              };
-            } catch (err) {
-              console.error(`Failed to fetch details for group ${summary.id}:`, err);
-              return {
-                id: summary.id,
-                name: summary.name,
-                tags: [],
-              };
-            }
-          })
-        );
-        setTagGroups(detailedGroups);
-      } catch (err) {
-        console.error('Failed to fetch tag groups:', err);
-      }
-    };
-    fetchTagGroups();
-  }, []);
-
   // Effect for infinite scroll
   useEffect(() => {
     if (!onLoadMore || !hasMore || isLoadingMore) return;
@@ -147,8 +120,7 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
 
     const observer = new IntersectionObserver(
       (entries) => {
-        const entry = entries[0];
-        if (entry.isIntersecting && hasMore && !isLoadingMore) {
+        if (entries[0].isIntersecting) {
           onLoadMore();
         }
       },
@@ -161,40 +133,8 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
 
     observer.observe(sentinel);
 
-    return () => {
-      observer.disconnect();
-    };
+    return () => observer.disconnect();
   }, [onLoadMore, hasMore, isLoadingMore]);
-
-  // Get all available tag options from backend tag groups (not from PVs)
-  const tagGroupOptions = useMemo(() => {
-    const result: Record<string, Array<{ id: string; name: string }>> = {};
-
-    // Get all tags from each tag group
-    tagGroups.forEach((group) => {
-      result[group.name] = group.tags || [];
-    });
-
-    return result;
-  }, [tagGroups]);
-
-  const filteredPVs = useMemo(() => {
-    let result = pvs;
-
-    // Search is now handled server-side, so we only apply tag filters here
-    // Apply tag group filters dynamically
-    Object.entries(activeFilters).forEach(([groupName, filterValues]) => {
-      if (filterValues && filterValues.length > 0) {
-        result = result.filter((pv) => {
-          const pvTagValues = pv.tags[groupName] ? Object.values(pv.tags[groupName]) : [];
-          // PV must have at least one of the selected tags
-          return filterValues.some((filterValue) => pvTagValues.includes(filterValue));
-        });
-      }
-    });
-
-    return result;
-  }, [pvs, activeFilters]);
 
   // Check if any filters are active
   const hasActiveFilters = Object.values(activeFilters).some(
@@ -202,7 +142,18 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
   );
 
   const clearFilters = () => {
-    setActiveFilters({});
+    if (onFilterChange) {
+      onFilterChange({});
+    }
+  };
+
+  const handleFilterChange = (groupName: string, values: string[]) => {
+    if (onFilterChange) {
+      onFilterChange({
+        ...activeFilters,
+        [groupName]: values,
+      });
+    }
   };
 
   const handleRowClick = (pv: PV) => {
@@ -378,7 +329,6 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
       <Box sx={{ px: 2, pb: 2 }}>
         <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
           {tagGroups.map((group) => {
-            const options = tagGroupOptions[group.name] || [];
             const selectedValues = activeFilters[group.name] || [];
 
             return (
@@ -386,14 +336,9 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
                 key={group.id}
                 groupId={group.id}
                 groupName={group.name}
-                tags={options}
+                tags={group.tags}
                 selectedValues={selectedValues}
-                onChange={(groupName, selectedIds) => {
-                  setActiveFilters({
-                    ...activeFilters,
-                    [groupName]: selectedIds,
-                  });
-                }}
+                onChange={handleFilterChange}
                 useIds={false}
               />
             );
@@ -461,7 +406,7 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredPVs.map((pv) => (
+              {pvs.map((pv) => (
                 <TableRow
                   key={pv.uuid}
                   hover
@@ -500,60 +445,54 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
                 </TableRow>
               ))}
               {/* Sentinel row for infinite scroll */}
-              {hasMore && (
-                <TableRow ref={sentinelRef}>
-                  <TableCell
-                    colSpan={isAdmin && onDeletePV ? 5 : 4}
-                    sx={{ textAlign: 'center', py: 2 }}
-                  >
-                    {isLoadingMore && (
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 1,
-                        }}
-                      >
-                        <CircularProgress size={20} />
-                        <Typography variant="body2" color="text.secondary">
-                          Loading more PVs...
-                        </Typography>
-                      </Box>
-                    )}
-                  </TableCell>
-                </TableRow>
-              )}
+              <TableRow ref={sentinelRef} sx={{ visibility: hasMore ? 'visible' : 'collapse' }}>
+                <TableCell
+                  colSpan={isAdmin && onDeletePV ? 5 : 4}
+                  sx={{
+                    textAlign: 'center',
+                    py: hasMore ? 2 : 0,
+                    border: hasMore ? undefined : 'none',
+                  }}
+                >
+                  {isLoadingMore && (
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 1,
+                      }}
+                    >
+                      <CircularProgress size={20} />
+                      <Typography variant="body2" color="text.secondary">
+                        Loading more PVs...
+                      </Typography>
+                    </Box>
+                  )}
+                </TableCell>
+              </TableRow>
               {/* End of list indicator */}
-              {!hasMore && filteredPVs.length > 0 && (
+              {!hasMore && pvs.length > 0 && (
                 <TableRow>
                   <TableCell
                     colSpan={isAdmin && onDeletePV ? 5 : 4}
                     sx={{ textAlign: 'center', py: 2 }}
                   >
                     <Typography variant="body2" color="text.secondary">
-                      {hasActiveFilters
-                        ? `Showing ${filteredPVs.length} of ${pvs.length} PVs`
-                        : `All ${pvs.length} PVs loaded`}
+                      All {pvs.length} PVs loaded
                     </Typography>
                   </TableCell>
                 </TableRow>
               )}
             </TableBody>
           </Table>
-          {filteredPVs.length === 0 && !isLoadingMore && (
+          {pvs.length === 0 && !isLoadingMore && (
             <Box sx={{ p: 5, textAlign: 'center' }}>
               <Typography variant="body1" color="text.secondary">
                 {searchText || hasActiveFilters
                   ? 'No PVs match your search or filters'
                   : 'No PVs available'}
               </Typography>
-              {hasActiveFilters && pvs.length > 0 && (
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                  Tag filters are applied to {pvs.length} loaded PV{pvs.length === 1 ? '' : 's'}.
-                  Try clearing filters or loading more PVs.
-                </Typography>
-              )}
             </Box>
           )}
         </TableContainer>

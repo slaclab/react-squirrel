@@ -17,11 +17,12 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  Chip,
+  ListSubheader,
   List,
   ListItem,
   ListItemText,
   ListItemSecondaryAction,
-  Chip,
 } from '@mui/material';
 import { Add, Delete, Edit, NoteOutlined } from '@mui/icons-material';
 import { TagGroup, Tag } from '../types';
@@ -328,42 +329,57 @@ export const TagPage: React.FC<TagPageProps> = ({
               multiline
               rows={2}
             />
-            <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>
-              Tags:
-            </Typography>
           </Box>
 
-          <Box sx={{ flex: 1, overflowY: 'auto', px: 3, py: 1 }}>
+          <Box sx={{ flex: 1, overflowY: 'auto', px: 3 }}>
             {selectedGroup && selectedGroup.tags.length > 0 ? (
-              <List dense sx={{ p: 0 }}>
+              <List sx={{ p: 0 }} subheader={<ListSubheader>Tags</ListSubheader>}>
                 {selectedGroup.tags.map((tag, idx) => (
-                  <ListItem key={idx}>
-                    <ListItemText primary={tag.name} />
-                    <ListItemSecondaryAction>
-                      {onEditTag && (
-                        <IconButton
-                          edge="end"
-                          aria-label="edit tag"
-                          size="small"
-                          onClick={() => handleOpenTagDialog(tag)}
-                          color="default"
-                        >
-                          {isAdmin ? <Edit fontSize="small" /> : <NoteOutlined fontSize="small" />}
-                        </IconButton>
-                      )}
-                      {isAdmin && onDeleteTag && (
-                        <IconButton
-                          edge="end"
-                          aria-label="delete"
-                          size="small"
-                          onClick={() => handleDeleteTag(tag)}
-                          color="error"
-                        >
-                          <Delete fontSize="small" />
-                        </IconButton>
-                      )}
-                    </ListItemSecondaryAction>
-                  </ListItem>
+                  <>
+                    <ListItem key={idx} divider={idx < selectedGroup.tags.length - 1}>
+                      <ListItemText
+                        primary={tag.name}
+                        secondary={tag.description}
+                        sx={{ pr: 3, overflow: 'hidden' }}
+                        secondaryTypographyProps={{
+                          variant: 'subtitle2',
+                          style: {
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          },
+                        }}
+                      />
+                      <ListItemSecondaryAction>
+                        {onEditTag && (
+                          <IconButton
+                            edge="end"
+                            aria-label="edit tag"
+                            size="small"
+                            onClick={() => handleOpenTagDialog(tag)}
+                            color="default"
+                          >
+                            {isAdmin ? (
+                              <Edit fontSize="small" />
+                            ) : (
+                              <NoteOutlined fontSize="small" />
+                            )}
+                          </IconButton>
+                        )}
+                        {isAdmin && onDeleteTag && (
+                          <IconButton
+                            edge="end"
+                            aria-label="delete"
+                            size="small"
+                            onClick={() => handleDeleteTag(tag)}
+                            color="error"
+                          >
+                            <Delete fontSize="small" />
+                          </IconButton>
+                        )}
+                      </ListItemSecondaryAction>
+                    </ListItem>
+                  </>
                 ))}
               </List>
             ) : (

@@ -26,6 +26,7 @@ import {
 } from '@mui/material';
 import { Add, Delete, Edit, NoteOutlined } from '@mui/icons-material';
 import { TagGroup, Tag } from '../types';
+import { PendingTagGroupChanges } from '../routes/tags';
 
 interface TagPageProps {
   tagGroups?: TagGroup[];
@@ -58,6 +59,7 @@ export const TagPage: React.FC<TagPageProps> = ({
   const [selectedGroup, setSelectedGroup] = useState<TagGroup | null>(null);
   const [selectedTag, setSelectedTag] = useState<Tag | null>(null);
   const [editMode, setEditMode] = useState(false);
+  const [draft, setDraft] = useState<PendingTagGroupChanges | null>(null);
 
   // Form state
   const [groupName, setGroupName] = useState('');

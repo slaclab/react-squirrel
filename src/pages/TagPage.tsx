@@ -167,7 +167,7 @@ export const TagPage: React.FC<TagPageProps> = ({
     if (!selectedGroup || !onEditTag) return;
 
     try {
-      await onEditTag(selectedGroup.id, tag.name, tagName, tagDescription);
+      await onEditTag(selectedGroup.id, tag.id, tagName, tagDescription);
     } catch (err) {
       console.error('Failed to edit tag:', err);
       alert('Failed to edit tag: ' + (err instanceof Error ? err.message : 'Unknown error'));

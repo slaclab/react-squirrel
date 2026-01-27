@@ -124,23 +124,12 @@ function Tags() {
 
   const handleEditTag = async (
     groupId: string,
-    tagName: string,
+    tagId: string,
     newTagName: string,
     newTagDescription: string
   ) => {
     try {
-      // Find the tag ID from the tag name
-      const group = tagGroups.find((g) => g.id === groupId);
-      if (!group || !group.tags) {
-        throw new Error('Tag group not found');
-      }
-
-      const tag = group.tags.find((t) => t.name === tagName);
-      if (!tag) {
-        throw new Error('Tag not found');
-      }
-
-      await tagsService.updateTagInGroup(groupId, tag.id, {
+      await tagsService.updateTagInGroup(groupId, tagId, {
         name: newTagName,
         description: newTagDescription,
       });
@@ -152,7 +141,7 @@ function Tags() {
             ? {
                 ...group,
                 tags: group.tags.map((tag) =>
-                  tag.name === tagName
+                  tag.id === tagId
                     ? { ...tag, name: newTagName, description: newTagDescription }
                     : tag
                 ),

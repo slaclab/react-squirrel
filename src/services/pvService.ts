@@ -29,17 +29,26 @@ export const pvService = {
   },
 
   /**
-   * Search PVs with pagination
+   * Search PVs with pagination and optional tag filtering
+   *
+   * @param params.pvName - Text search term
+   * @param params.continuationToken - Token for pagination
+   * @param params.pageSize - Number of results per page
+   * @param params.tagFilters - Object of {groupId: [tagId1, tagId2], ...}
    */
   async findPVsPaged(params: {
     pvName?: string;
     continuationToken?: string;
     pageSize?: number;
+    tagFilters?: Record<string, string[]>;
   }): Promise<PagedResultDTO<PVElementDTO>> {
-    return apiClient.get<PagedResultDTO<PVElementDTO>>(
-      `${API_CONFIG.endpoints.pvs}/paged`,
-      params
-    );
+    const { tagFilters, ...rest } = params;
+
+    return apiClient.get<PagedResultDTO<PVElementDTO>>(`${API_CONFIG.endpoints.pvs}/paged`, {
+      ...rest,
+      tagFilters:
+        tagFilters && Object.keys(tagFilters).length > 0 ? JSON.stringify(tagFilters) : undefined,
+    });
   },
 
   /**
@@ -122,23 +131,14 @@ export const pvService = {
    * Create multiple PVs
    */
   async createMultiplePVs(pvs: NewPVElementDTO[]): Promise<PVElementDTO[]> {
-    return apiClient.post<PVElementDTO[]>(
-      `${API_CONFIG.endpoints.pvs}/multi`,
-      pvs
-    );
+    return apiClient.post<PVElementDTO[]>(`${API_CONFIG.endpoints.pvs}/multi`, pvs);
   },
 
   /**
    * Update a PV by ID
    */
-  async updatePV(
-    pvId: string,
-    updates: UpdatePVElementDTO
-  ): Promise<PVElementDTO> {
-    return apiClient.put<PVElementDTO>(
-      `${API_CONFIG.endpoints.pvs}/${pvId}`,
-      updates
-    );
+  async updatePV(pvId: string, updates: UpdatePVElementDTO): Promise<PVElementDTO> {
+    return apiClient.put<PVElementDTO>(`${API_CONFIG.endpoints.pvs}/${pvId}`, updates);
   },
 
   /**

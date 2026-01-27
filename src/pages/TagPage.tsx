@@ -24,6 +24,8 @@ import {
   ListItem,
   ListItemText,
   ListItemSecondaryAction,
+  ListItemAvatar,
+  ListItemButton,
 } from '@mui/material';
 import { Add, Delete, Edit, NoteOutlined } from '@mui/icons-material';
 import { TagGroup, Tag } from '../types';
@@ -337,7 +339,7 @@ export const TagPage: React.FC<TagPageProps> = ({
               <List sx={{ p: 0 }} subheader={<ListSubheader>Tags</ListSubheader>}>
                 {selectedGroup.tags.map((tag, idx) => (
                   <>
-                    <ListItem key={idx}>
+                    <ListItem key={idx} divider={idx < selectedGroup.tags.length - 1}>
                       <ListItemText
                         primary={tag.name}
                         secondary={tag.description}
@@ -380,9 +382,6 @@ export const TagPage: React.FC<TagPageProps> = ({
                         )}
                       </ListItemSecondaryAction>
                     </ListItem>
-                    {selectedGroup.tags.length - 1 != idx && (
-                      <Divider key={`divider-${idx}`} component="li" />
-                    )}
                   </>
                 ))}
               </List>

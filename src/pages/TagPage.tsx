@@ -19,13 +19,10 @@ import {
   TextField,
   Chip,
   ListSubheader,
-  Divider,
   List,
   ListItem,
   ListItemText,
   ListItemSecondaryAction,
-  ListItemAvatar,
-  ListItemButton,
 } from '@mui/material';
 import { Add, Delete, Edit, NoteOutlined } from '@mui/icons-material';
 import { TagGroup, Tag } from '../types';

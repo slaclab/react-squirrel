@@ -176,6 +176,9 @@ function Tags() {
         throw new Error('Tag not found');
       }
 
+      if (!tag.id) {
+        throw new Error('Tag ID is missing');
+      }
       await tagsService.removeTagFromGroup(groupId, tag.id);
       await fetchTagGroups(); // Refresh the list
     } catch (err) {
@@ -199,9 +202,6 @@ function Tags() {
       onAddGroup={handleAddGroup}
       onEditGroup={handleEditGroup}
       onDeleteGroup={handleDeleteGroup}
-      onAddTag={handleAddTag}
-      onEditTag={handleEditTag}
-      onDeleteTag={handleDeleteTag}
     />
   );
 }

@@ -58,7 +58,7 @@ export interface EpicsData {
 export type TagSet = { [key: string]: any };
 
 export interface Tag {
-  id: string;
+  id?: string;
   name: string;
   description?: string;
 }

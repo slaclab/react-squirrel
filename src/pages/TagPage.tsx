@@ -34,14 +34,6 @@ interface TagPageProps {
   onAddGroup?: (name: string, description: string) => void;
   onEditGroup?: (id: string, name: string, description: string) => void;
   onDeleteGroup?: (id: string) => void;
-  onAddTag?: (groupId: string, tagName: string) => Promise<void>;
-  onEditTag?: (
-    groupId: string,
-    tagName: string,
-    name: string,
-    description: string
-  ) => Promise<void>;
-  onDeleteTag?: (groupId: string, tagName: string) => Promise<void>;
 }
 
 export const TagPage: React.FC<TagPageProps> = ({
@@ -50,9 +42,6 @@ export const TagPage: React.FC<TagPageProps> = ({
   onAddGroup,
   onEditGroup,
   onDeleteGroup,
-  onAddTag,
-  onEditTag,
-  onDeleteTag,
 }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [tagDialogOpen, setTagDialogOpen] = useState(false);
@@ -167,52 +156,89 @@ export const TagPage: React.FC<TagPageProps> = ({
       alert('Tag name is required');
       return;
     }
+    if (!selectedGroup) return;
 
-    if (!selectedGroup || !onAddTag) return;
-
-    try {
-      await onAddTag(selectedGroup.id, newTagName);
-      setNewTagName('');
-      // Refresh the selected group data
-      const updatedGroup = tagGroups.find((g) => g.id === selectedGroup.id);
-      if (updatedGroup) {
-        setSelectedGroup(updatedGroup);
-      }
-    } catch (err) {
-      console.error('Failed to add tag:', err);
-      alert('Failed to add tag: ' + (err instanceof Error ? err.message : 'Unknown error'));
-    }
+    setDraft((prev) =>
+      prev
+        ? {
+            ...prev,
+            tagsToAdd: [...prev.tagsToAdd, { name: newTagName, description: '' }],
+          }
+        : null
+    );
+    setNewTagName('');
   };
 
   const handleEditTag = async (tag: Tag) => {
-    if (!selectedGroup || !onEditTag) return;
+    if (!selectedGroup) return;
 
-    try {
-      await onEditTag(selectedGroup.id, tag.id, tagName, tagDescription);
-    } catch (err) {
-      console.error('Failed to edit tag:', err);
-      alert('Failed to edit tag: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    if (!tag.id) {
+      if (draft?.tagsToAdd.find((t) => t.name === tag.name)) {
+        setDraft((prev) =>
+          prev
+            ? {
+                ...prev,
+                tagsToAdd: prev.tagsToAdd.map((t) =>
+                  t.name === tag.name ? { name: tagName, description: tagDescription } : t
+                ),
+              }
+            : null
+        );
+        return;
+      } else {
+        throw new Error('Tag ID is missing');
+      }
     }
+
+    if (draft?.tagsToDelete.has(tag.id)) {
+      draft.tagsToDelete.delete(tag.id);
+    }
+
+    setDraft((prev) =>
+      prev
+        ? {
+            ...prev,
+            tagsToEdit: new Map(prev.tagsToEdit).set(tag.id!, {
+              name: tagName,
+              description: tagDescription,
+            }),
+          }
+        : null
+    );
   };
 
   const handleDeleteTag = async (tag: Tag) => {
     if (!confirm(`Delete tag "${tag.name}"?`)) return;
+    if (!selectedGroup) return;
 
-    if (!selectedGroup || !onDeleteTag) return;
-
-    try {
-      // We need to find the tag ID - for now we're using tag name
-      // The backend API expects tag ID, so we'll need to update this
-      await onDeleteTag(selectedGroup.id, tag.name);
-      // Refresh the selected group data
-      const updatedGroup = tagGroups.find((g) => g.id === selectedGroup.id);
-      if (updatedGroup) {
-        setSelectedGroup(updatedGroup);
+    if (!tag.id) {
+      if (draft?.tagsToAdd.find((t) => t.name === tag.name)) {
+        setDraft((prev) =>
+          prev
+            ? {
+                ...prev,
+                tagsToAdd: prev.tagsToAdd.filter((t) => t.name !== tag.name),
+              }
+            : null
+        );
+        return;
+      } else {
+        throw new Error('Tag ID is missing');
       }
-    } catch (err) {
-      console.error('Failed to delete tag:', err);
-      alert('Failed to delete tag: ' + (err instanceof Error ? err.message : 'Unknown error'));
     }
+
+    if (draft?.tagsToEdit.has(tag.id)) {
+      draft.tagsToEdit.delete(tag.id);
+    }
+
+    setDraft((prev) =>
+      prev
+        ? {
+            ...prev,
+            tagsToDelete: new Set(prev.tagsToDelete).add(tag.id!),
+          }
+        : null
+    );
   };
 
   const handleRowClick = (group: TagGroup) => {
@@ -381,7 +407,10 @@ export const TagPage: React.FC<TagPageProps> = ({
               <List sx={{ p: 0 }} subheader={<ListSubheader>Tags</ListSubheader>}>
                 {selectedGroup.tags.map((tag, idx) => (
                   <>
-                    <ListItem key={idx} divider={idx < selectedGroup.tags.length - 1}>
+                    <ListItem
+                      key={tag.id || `temp-${tag.name}`}
+                      divider={idx < selectedGroup.tags.length - 1}
+                    >
                       <ListItemText
                         primary={tag.name}
                         secondary={tag.description}
@@ -396,7 +425,7 @@ export const TagPage: React.FC<TagPageProps> = ({
                         }}
                       />
                       <ListItemSecondaryAction>
-                        {onEditTag && (
+                        {
                           <IconButton
                             edge="end"
                             aria-label="edit tag"
@@ -410,8 +439,8 @@ export const TagPage: React.FC<TagPageProps> = ({
                               <NoteOutlined fontSize="small" />
                             )}
                           </IconButton>
-                        )}
-                        {isAdmin && onDeleteTag && (
+                        }
+                        {isAdmin && (
                           <IconButton
                             edge="end"
                             aria-label="delete"
@@ -434,7 +463,7 @@ export const TagPage: React.FC<TagPageProps> = ({
             )}
           </Box>
 
-          {isAdmin && editMode && onAddTag && (
+          {isAdmin && editMode && (
             <Box sx={{ px: 3, py: 2, borderTop: '1px solid #eee' }}>
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <TextField
@@ -442,7 +471,7 @@ export const TagPage: React.FC<TagPageProps> = ({
                   label="New Tag Name"
                   value={newTagName}
                   onChange={(e) => setNewTagName(e.target.value)}
-                  onKeyPress={(e) => {
+                  onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
                       handleAddNewTag();
@@ -455,6 +484,7 @@ export const TagPage: React.FC<TagPageProps> = ({
                   onClick={handleAddNewTag}
                   variant="outlined"
                   size="small"
+                  disabled={!newTagName.trim()}
                 >
                   Add
                 </Button>

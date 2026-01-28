@@ -83,11 +83,19 @@ export const TagPage: React.FC<TagPageProps> = ({
       setSelectedGroup(group);
       setGroupName(group.name);
       setGroupDescription(group.description);
+      setDraft({
+        groupId: group.id,
+        groupChanges: { name: group.name, description: group.description || '' },
+        tagsToAdd: [],
+        tagsToEdit: new Map(),
+        tagsToDelete: new Set(),
+      });
       setEditMode(true);
     } else {
       setSelectedGroup(null);
       setGroupName('');
       setGroupDescription('');
+      setDraft(null);
       setEditMode(false);
     }
     setNewTagName('');
@@ -96,6 +104,7 @@ export const TagPage: React.FC<TagPageProps> = ({
 
   const handleCloseDialog = () => {
     setDialogOpen(false);
+    setDraft(null);
     setSelectedGroup(null);
     setGroupName('');
     setGroupDescription('');
@@ -142,6 +151,16 @@ export const TagPage: React.FC<TagPageProps> = ({
       alert('Failed to save: ' + (err instanceof Error ? err.message : 'Unknown error'));
     }
   };
+
+  function draftIsEmpty(draft: PendingTagGroupChanges | null): boolean {
+    if (!draft) return true;
+    if (draft.tagsToAdd.length > 0) return false;
+    if (draft.tagsToEdit.size > 0) return false;
+    if (draft.tagsToDelete.size > 0) return false;
+    if (draft.groupChanges?.name !== selectedGroup?.name) return false;
+    if (draft.groupChanges?.description !== selectedGroup?.description) return false;
+    return true;
+  }
 
   const handleAddNewTag = async () => {
     if (!newTagName.trim()) {
@@ -316,16 +335,40 @@ export const TagPage: React.FC<TagPageProps> = ({
             <TextField
               fullWidth
               label="Title"
-              value={groupName}
-              onChange={(e) => setGroupName(e.target.value)}
+              value={draft?.groupChanges?.name || ''}
+              onChange={(e) =>
+                setDraft((prev) =>
+                  prev
+                    ? {
+                        ...prev,
+                        groupChanges: {
+                          name: e.target.value,
+                          description: prev.groupChanges?.description || '',
+                        },
+                      }
+                    : null
+                )
+              }
               margin="normal"
               disabled={!isAdmin}
             />
             <TextField
               fullWidth
               label="Description"
-              value={groupDescription}
-              onChange={(e) => setGroupDescription(e.target.value)}
+              value={draft?.groupChanges?.description || ''}
+              onChange={(e) =>
+                setDraft((prev) =>
+                  prev
+                    ? {
+                        ...prev,
+                        groupChanges: {
+                          name: prev.groupChanges?.name || '',
+                          description: e.target.value,
+                        },
+                      }
+                    : null
+                )
+              }
               margin="normal"
               disabled={!isAdmin}
               multiline
@@ -422,7 +465,11 @@ export const TagPage: React.FC<TagPageProps> = ({
         <DialogActions>
           <Button onClick={handleCloseDialog}>{isAdmin ? 'Cancel' : 'Close'}</Button>
           {isAdmin && (
-            <Button variant="contained" onClick={handleSave}>
+            <Button
+              variant="contained"
+              onClick={handleSave}
+              disabled={draftIsEmpty(draft) || !groupName.trim()}
+            >
               Save
             </Button>
           )}

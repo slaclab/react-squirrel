@@ -8,87 +8,75 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './routes/__root'
-import { Route as TagsRouteImport } from './routes/tags'
-import { Route as SnapshotsRouteImport } from './routes/snapshots'
-import { Route as SnapshotDetailsRouteImport } from './routes/snapshot-details'
-import { Route as PvBrowserRouteImport } from './routes/pv-browser'
-import { Route as ComparisonRouteImport } from './routes/comparison'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as rootRouteImport } from './routes/__root';
+import { Route as TagsRouteImport } from './routes/tags';
+import { Route as SnapshotsRouteImport } from './routes/snapshots';
+import { Route as SnapshotDetailsRouteImport } from './routes/snapshot-details';
+import { Route as PvBrowserRouteImport } from './routes/pv-browser';
+import { Route as ComparisonRouteImport } from './routes/comparison';
+import { Route as IndexRouteImport } from './routes/index';
 
 const TagsRoute = TagsRouteImport.update({
   id: '/tags',
   path: '/tags',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const SnapshotsRoute = SnapshotsRouteImport.update({
   id: '/snapshots',
   path: '/snapshots',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const SnapshotDetailsRoute = SnapshotDetailsRouteImport.update({
   id: '/snapshot-details',
   path: '/snapshot-details',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const PvBrowserRoute = PvBrowserRouteImport.update({
   id: '/pv-browser',
   path: '/pv-browser',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const ComparisonRoute = ComparisonRouteImport.update({
   id: '/comparison',
   path: '/comparison',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/comparison': typeof ComparisonRoute
-  '/pv-browser': typeof PvBrowserRoute
-  '/snapshot-details': typeof SnapshotDetailsRoute
-  '/snapshots': typeof SnapshotsRoute
-  '/tags': typeof TagsRoute
+  '/': typeof IndexRoute;
+  '/comparison': typeof ComparisonRoute;
+  '/pv-browser': typeof PvBrowserRoute;
+  '/snapshot-details': typeof SnapshotDetailsRoute;
+  '/snapshots': typeof SnapshotsRoute;
+  '/tags': typeof TagsRoute;
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/comparison': typeof ComparisonRoute
-  '/pv-browser': typeof PvBrowserRoute
-  '/snapshot-details': typeof SnapshotDetailsRoute
-  '/snapshots': typeof SnapshotsRoute
-  '/tags': typeof TagsRoute
+  '/': typeof IndexRoute;
+  '/comparison': typeof ComparisonRoute;
+  '/pv-browser': typeof PvBrowserRoute;
+  '/snapshot-details': typeof SnapshotDetailsRoute;
+  '/snapshots': typeof SnapshotsRoute;
+  '/tags': typeof TagsRoute;
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/comparison': typeof ComparisonRoute
-  '/pv-browser': typeof PvBrowserRoute
-  '/snapshot-details': typeof SnapshotDetailsRoute
-  '/snapshots': typeof SnapshotsRoute
-  '/tags': typeof TagsRoute
+  __root__: typeof rootRouteImport;
+  '/': typeof IndexRoute;
+  '/comparison': typeof ComparisonRoute;
+  '/pv-browser': typeof PvBrowserRoute;
+  '/snapshot-details': typeof SnapshotDetailsRoute;
+  '/snapshots': typeof SnapshotsRoute;
+  '/tags': typeof TagsRoute;
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/comparison'
-    | '/pv-browser'
-    | '/snapshot-details'
-    | '/snapshots'
-    | '/tags'
-  fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/comparison'
-    | '/pv-browser'
-    | '/snapshot-details'
-    | '/snapshots'
-    | '/tags'
+  fileRoutesByFullPath: FileRoutesByFullPath;
+  fullPaths: '/' | '/comparison' | '/pv-browser' | '/snapshot-details' | '/snapshots' | '/tags';
+  fileRoutesByTo: FileRoutesByTo;
+  to: '/' | '/comparison' | '/pv-browser' | '/snapshot-details' | '/snapshots' | '/tags';
   id:
     | '__root__'
     | '/'
@@ -96,62 +84,62 @@ export interface FileRouteTypes {
     | '/pv-browser'
     | '/snapshot-details'
     | '/snapshots'
-    | '/tags'
-  fileRoutesById: FileRoutesById
+    | '/tags';
+  fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  ComparisonRoute: typeof ComparisonRoute
-  PvBrowserRoute: typeof PvBrowserRoute
-  SnapshotDetailsRoute: typeof SnapshotDetailsRoute
-  SnapshotsRoute: typeof SnapshotsRoute
-  TagsRoute: typeof TagsRoute
+  IndexRoute: typeof IndexRoute;
+  ComparisonRoute: typeof ComparisonRoute;
+  PvBrowserRoute: typeof PvBrowserRoute;
+  SnapshotDetailsRoute: typeof SnapshotDetailsRoute;
+  SnapshotsRoute: typeof SnapshotsRoute;
+  TagsRoute: typeof TagsRoute;
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
     '/tags': {
-      id: '/tags'
-      path: '/tags'
-      fullPath: '/tags'
-      preLoaderRoute: typeof TagsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
+      id: '/tags';
+      path: '/tags';
+      fullPath: '/tags';
+      preLoaderRoute: typeof TagsRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/snapshots': {
-      id: '/snapshots'
-      path: '/snapshots'
-      fullPath: '/snapshots'
-      preLoaderRoute: typeof SnapshotsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
+      id: '/snapshots';
+      path: '/snapshots';
+      fullPath: '/snapshots';
+      preLoaderRoute: typeof SnapshotsRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/snapshot-details': {
-      id: '/snapshot-details'
-      path: '/snapshot-details'
-      fullPath: '/snapshot-details'
-      preLoaderRoute: typeof SnapshotDetailsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
+      id: '/snapshot-details';
+      path: '/snapshot-details';
+      fullPath: '/snapshot-details';
+      preLoaderRoute: typeof SnapshotDetailsRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/pv-browser': {
-      id: '/pv-browser'
-      path: '/pv-browser'
-      fullPath: '/pv-browser'
-      preLoaderRoute: typeof PvBrowserRouteImport
-      parentRoute: typeof rootRouteImport
-    }
+      id: '/pv-browser';
+      path: '/pv-browser';
+      fullPath: '/pv-browser';
+      preLoaderRoute: typeof PvBrowserRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/comparison': {
-      id: '/comparison'
-      path: '/comparison'
-      fullPath: '/comparison'
-      preLoaderRoute: typeof ComparisonRouteImport
-      parentRoute: typeof rootRouteImport
-    }
+      id: '/comparison';
+      path: '/comparison';
+      fullPath: '/comparison';
+      preLoaderRoute: typeof ComparisonRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
+      id: '/';
+      path: '/';
+      fullPath: '/';
+      preLoaderRoute: typeof IndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
   }
 }
 
@@ -162,7 +150,7 @@ const rootRouteChildren: RootRouteChildren = {
   SnapshotDetailsRoute: SnapshotDetailsRoute,
   SnapshotsRoute: SnapshotsRoute,
   TagsRoute: TagsRoute,
-}
+};
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
+  ._addFileTypes<FileRouteTypes>();

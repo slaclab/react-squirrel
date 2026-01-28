@@ -16,11 +16,7 @@ export const snapshotKeys = {
 /**
  * Hook for fetching all snapshots
  */
-export function useSnapshots(params?: {
-  title?: string;
-  tags?: string[];
-  metadataPVs?: string[];
-}) {
+export function useSnapshots(params?: { title?: string; tags?: string[]; metadataPVs?: string[] }) {
   return useQuery({
     queryKey: snapshotKeys.list(params),
     queryFn: () => snapshotService.findSnapshots(params),
@@ -31,10 +27,7 @@ export function useSnapshots(params?: {
 /**
  * Hook for fetching a single snapshot by ID with optional pagination
  */
-export function useSnapshot(
-  snapshotId: string,
-  options?: { limit?: number; offset?: number }
-) {
+export function useSnapshot(snapshotId: string, options?: { limit?: number; offset?: number }) {
   const { limit, offset = 0 } = options || {};
 
   return useQuery({

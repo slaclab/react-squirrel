@@ -102,8 +102,13 @@ export function useUpdatePV() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ pvId, updates }: { pvId: string; updates: Parameters<typeof pvService.updatePV>[1] }) =>
-      pvService.updatePV(pvId, updates),
+    mutationFn: ({
+      pvId,
+      updates,
+    }: {
+      pvId: string;
+      updates: Parameters<typeof pvService.updatePV>[1];
+    }) => pvService.updatePV(pvId, updates),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: pvKeys.detail(variables.pvId) });
       queryClient.invalidateQueries({ queryKey: pvKeys.lists() });

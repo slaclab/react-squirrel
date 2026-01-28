@@ -1,10 +1,5 @@
 import { Box, Typography } from '@mui/material';
-import {
-  CheckCircle,
-  Warning,
-  Error as ErrorIcon,
-  Cancel,
-} from '@mui/icons-material';
+import { CheckCircle, Warning, Error as ErrorIcon, Cancel } from '@mui/icons-material';
 import { EpicsData, Severity } from '../../types';
 
 /**

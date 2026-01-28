@@ -4,12 +4,7 @@
 
 import { API_CONFIG } from '../config/api';
 import { apiClient } from './apiClient';
-import {
-  SnapshotDTO,
-  SnapshotSummaryDTO,
-  NewSnapshotDTO,
-  JobCreatedDTO,
-} from '../types';
+import { SnapshotDTO, SnapshotSummaryDTO, NewSnapshotDTO, JobCreatedDTO } from '../types';
 
 export const snapshotService = {
   /**
@@ -20,10 +15,7 @@ export const snapshotService = {
     tags?: string[];
     metadataPVs?: string[];
   }): Promise<SnapshotSummaryDTO[]> {
-    return apiClient.get<SnapshotSummaryDTO[]>(
-      API_CONFIG.endpoints.snapshots,
-      params
-    );
+    return apiClient.get<SnapshotSummaryDTO[]>(API_CONFIG.endpoints.snapshots, params);
   },
 
   /**
@@ -52,10 +44,7 @@ export const snapshotService = {
    * Create a new snapshot (async mode - returns job ID for polling)
    */
   async createSnapshotAsync(snapshot: NewSnapshotDTO): Promise<JobCreatedDTO> {
-    return apiClient.post<JobCreatedDTO>(
-      `${API_CONFIG.endpoints.snapshots}?async=true`,
-      snapshot
-    );
+    return apiClient.post<JobCreatedDTO>(`${API_CONFIG.endpoints.snapshots}?async=true`, snapshot);
   },
 
   /**
@@ -72,13 +61,9 @@ export const snapshotService = {
   /**
    * Delete a snapshot by ID
    */
-  async deleteSnapshot(
-    snapshotId: string,
-    deleteData: boolean = true
-  ): Promise<boolean> {
-    return apiClient.delete<boolean>(
-      `${API_CONFIG.endpoints.snapshots}/${snapshotId}`,
-      { deleteData }
-    );
+  async deleteSnapshot(snapshotId: string, deleteData: boolean = true): Promise<boolean> {
+    return apiClient.delete<boolean>(`${API_CONFIG.endpoints.snapshots}/${snapshotId}`, {
+      deleteData,
+    });
   },
 };

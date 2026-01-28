@@ -185,28 +185,35 @@ function PVBrowser() {
       // Fetch tag groups first to build the mapping
       const summaries = await tagsService.findAllTagGroups();
       const tagMap = new Map<string, string>();
-      const groupsInfo: TagGroupInfo[] = [];
 
-      await Promise.all(
+      // Fetch all group details in parallel, preserving order
+      const groupResults = await Promise.all(
         summaries.map(async (summary) => {
           try {
             const details = await tagsService.getTagGroupById(summary.id);
-            const group = details[0];
-            // Map each tag ID to its group ID
-            group.tags.forEach((tag) => {
-              tagMap.set(tag.id, group.id);
-            });
-            groupsInfo.push({
-              id: group.id,
-              name: group.name,
-              tags: group.tags,
-            });
+            return details[0];
           } catch (err) {
             // eslint-disable-next-line no-console
             console.error(`Failed to fetch details for group ${summary.id}:`, err);
+            return null;
           }
         })
       );
+
+      // Filter out failed fetches and build the groupsInfo array (order preserved)
+      const groupsInfo: TagGroupInfo[] = groupResults
+        .filter((group): group is NonNullable<typeof group> => group !== null)
+        .map((group) => {
+          // Map each tag ID to its group ID
+          group.tags.forEach((tag) => {
+            tagMap.set(tag.id, group.id);
+          });
+          return {
+            id: group.id,
+            name: group.name,
+            tags: group.tags,
+          };
+        });
 
       setTagGroupMap(tagMap);
       setTagGroups(groupsInfo);

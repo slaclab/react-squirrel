@@ -151,12 +151,40 @@ export const TagPage: React.FC<TagPageProps> = ({
     return true;
   }
 
+  const isTagNameInUse = (name: string, excludeTagId?: string): boolean => {
+    if (!selectedGroup) return false;
+
+    // Check existing tags
+    if (selectedGroup.tags.some((t) => t.name === name && t.id !== excludeTagId)) {
+      return true;
+    }
+
+    // Check tags being added to draft
+    if (draft?.tagsToAdd.some((t) => t.name === name)) {
+      return true;
+    }
+
+    // Check tags being edited in draft
+    for (const [tagId, editData] of draft?.tagsToEdit || []) {
+      if (editData.name === name && tagId !== excludeTagId) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
   const handleAddNewTag = async () => {
     if (!newTagName.trim()) {
       alert('Tag name is required');
       return;
     }
     if (!selectedGroup) return;
+
+    if (isTagNameInUse(newTagName)) {
+      alert(`Tag "${newTagName}" already exists in this group`);
+      return;
+    }
 
     setDraft((prev) =>
       prev
@@ -171,6 +199,12 @@ export const TagPage: React.FC<TagPageProps> = ({
 
   const handleEditTag = async (tag: Tag) => {
     if (!selectedGroup) return;
+
+    // Check if new name is already in use (excluding the current tag)
+    if (tagName !== tag.name && isTagNameInUse(tagName, tag.id)) {
+      alert(`Tag "${tagName}" already exists in this group`);
+      return;
+    }
 
     if (!tag.id) {
       if (draft?.tagsToAdd.find((t) => t.name === tag.name)) {

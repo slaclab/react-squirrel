@@ -22,7 +22,6 @@ import {
   List,
   ListItem,
   ListItemText,
-  ListItemSecondaryAction,
   ListItemIcon,
   Tooltip,
 } from '@mui/material';
@@ -143,19 +142,19 @@ export const TagPage: React.FC<TagPageProps> = ({
     }
   };
 
-  function draftHasNoTags(draft: PendingTagGroupChanges | null): boolean {
-    if (!draft) return true;
-    if (draft.tagsToAdd.length > 0) return false;
-    if (draft.tagsToEdit.size > 0) return false;
-    if (draft.tagsToDelete.size > 0) return false;
-    return true;
-  }
+  const groupNameChanged = draft?.groupChanges.name !== selectedGroup?.name;
+  const groupDescriptionChanged = draft?.groupChanges.description !== selectedGroup?.description;
+
+  const draftHasTags = (draft: PendingTagGroupChanges | null): boolean => {
+    if (!draft) return false;
+    return draft.tagsToAdd.length > 0 || draft.tagsToEdit.size > 0 || draft.tagsToDelete.size > 0;
+  };
 
   function draftIsEmpty(draft: PendingTagGroupChanges | null): boolean {
     if (!draft) return true;
-    if (!draftHasNoTags(draft)) return false;
-    if (draft.groupChanges?.name !== selectedGroup?.name) return false;
-    if (draft.groupChanges?.description !== selectedGroup?.description) return false;
+    if (draftHasTags(draft)) return false;
+    if (groupNameChanged) return false;
+    if (groupDescriptionChanged) return false;
     return true;
   }
 
@@ -513,19 +512,10 @@ export const TagPage: React.FC<TagPageProps> = ({
                       key={tag.id || `temp-${tag.name}`}
                       divider={idx < getDisplayTags().length - 1}
                     >
-                      {isAdmin && !draftHasNoTags(draft) && (
-                        <ListItemIcon sx={{ minWidth: 28, minHeight: 0, mr: 1 }}>
-                          {isTagInDraft(tag) && (
-                            <Tooltip title="Tag has unsaved changes">
-                              <NewReleasesOutlined color="info" />
-                            </Tooltip>
-                          )}
-                        </ListItemIcon>
-                      )}
                       <ListItemText
                         primary={tag.name}
                         secondary={tag.description}
-                        sx={{ pr: 3, overflow: 'hidden' }}
+                        sx={{ overflow: 'hidden' }}
                         secondaryTypographyProps={{
                           variant: 'subtitle2',
                           style: {
@@ -535,34 +525,35 @@ export const TagPage: React.FC<TagPageProps> = ({
                           },
                         }}
                       />
-                      <ListItemSecondaryAction>
-                        {
-                          <IconButton
-                            edge="end"
-                            aria-label="edit tag"
-                            size="small"
-                            onClick={() => handleOpenTagDialog(tag)}
-                            color="default"
-                          >
-                            {isAdmin ? (
-                              <Edit fontSize="small" />
-                            ) : (
-                              <NoteOutlined fontSize="small" />
-                            )}
-                          </IconButton>
-                        }
-                        {isAdmin && (
-                          <IconButton
-                            edge="end"
-                            aria-label="delete"
-                            size="small"
-                            onClick={() => handleDeleteTag(tag)}
-                            color="error"
-                          >
-                            <Delete fontSize="small" />
-                          </IconButton>
-                        )}
-                      </ListItemSecondaryAction>
+                      {isAdmin && draftHasTags(draft) && (
+                        <ListItemIcon sx={{ minWidth: '26px' }}>
+                          {isTagInDraft(tag) && (
+                            <Tooltip title="Tag has unsaved changes">
+                              <NewReleasesOutlined color="info" />
+                            </Tooltip>
+                          )}
+                        </ListItemIcon>
+                      )}
+                      <IconButton
+                        edge="end"
+                        aria-label="edit tag"
+                        size="small"
+                        onClick={() => handleOpenTagDialog(tag)}
+                        color="default"
+                      >
+                        {isAdmin ? <Edit fontSize="small" /> : <NoteOutlined fontSize="small" />}
+                      </IconButton>
+                      {isAdmin && (
+                        <IconButton
+                          edge="end"
+                          aria-label="delete"
+                          size="small"
+                          onClick={() => handleDeleteTag(tag)}
+                          color="error"
+                        >
+                          <Delete fontSize="small" />
+                        </IconButton>
+                      )}
                     </ListItem>
                   </>
                 ))}

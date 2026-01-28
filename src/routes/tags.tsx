@@ -7,7 +7,7 @@ import { TagGroup } from '../types';
 
 export interface PendingTagGroupChanges {
   groupId: string;
-  groupChanges?: { name: string; description: string };
+  groupChanges: { name: string; description: string };
   tagsToAdd: { name: string; description?: string }[];
   tagsToEdit: Map<string, { name: string; description?: string }>; // tag ID -> new values
   tagsToDelete: Set<string>; // tag IDs to delete

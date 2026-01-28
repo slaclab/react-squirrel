@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Stack,
@@ -21,7 +21,6 @@ import {
   DialogActions,
   Drawer,
   Divider,
-  Link,
   CircularProgress,
 } from '@mui/material';
 import { Search, Add, Delete, Close, Upload } from '@mui/icons-material';
@@ -69,7 +68,7 @@ interface PVBrowserPageProps {
   onFilterChange?: (filters: Record<string, string[]>) => void;
 }
 
-export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
+export function PVBrowserPage({
   pvs,
   onAddPV,
   onUpdatePV,
@@ -85,7 +84,7 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
   tagGroups = [],
   activeFilters = {},
   onFilterChange,
-}) => {
+}: PVBrowserPageProps) {
   const [selectedPV, setSelectedPV] = useState<PV | null>(null);
   const [addPVDialogOpen, setAddPVDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
@@ -112,11 +111,11 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
 
   // Effect for infinite scroll
   useEffect(() => {
-    if (!onLoadMore || !hasMore || isLoadingMore) return;
+    if (!onLoadMore || !hasMore || isLoadingMore) return undefined;
 
     const sentinel = sentinelRef.current;
     const container = tableContainerRef.current;
-    if (!sentinel || !container) return;
+    if (!sentinel || !container) return undefined;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -225,8 +224,10 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
       await onUpdatePV(selectedPV.uuid, updates);
       setSelectedPV(null); // Close drawer on success
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error('Failed to update PV:', err);
-      alert('Failed to update PV: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      // eslint-disable-next-line no-alert
+      alert(`Failed to update PV: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setIsSaving(false);
     }
@@ -234,12 +235,14 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
 
   const handleAddPVSubmit = async () => {
     if (!newPVData.pvName.trim()) {
+      // eslint-disable-next-line no-alert
       alert('PV Name is required');
       return;
     }
 
     // Check if readback name is the same as PV name
     if (newPVData.readbackName && newPVData.readbackName === newPVData.pvName) {
+      // eslint-disable-next-line no-alert
       alert('Readback Name must be different from PV Name');
       return;
     }
@@ -259,8 +262,10 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
         selectedTags: {},
       });
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error('Failed to add PV:', err);
-      alert('Failed to add PV: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      // eslint-disable-next-line no-alert
+      alert(`Failed to add PV: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
 
@@ -273,7 +278,7 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
   // Extract unique tags for display
   const getTags = (pv: PV): string[] => {
     const tags: string[] = [];
-    Object.values(pv.tags).forEach((tagSet: any) => {
+    Object.values(pv.tags).forEach((tagSet: Record<string, string>) => {
       if (typeof tagSet === 'object') {
         tags.push(...Object.values(tagSet).filter((t): t is string => typeof t === 'string'));
       }
@@ -345,14 +350,14 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
           })}
 
           {hasActiveFilters && (
-            <Link
-              component="button"
-              variant="body2"
+            <Button
+              variant="text"
+              size="small"
               onClick={clearFilters}
-              sx={{ ml: 1, cursor: 'pointer', textDecoration: 'none', color: 'primary.main' }}
+              sx={{ ml: 1, textTransform: 'none' }}
             >
               x Clear Filters
-            </Link>
+            </Button>
           )}
           {hasActiveFilters && (
             <Typography
@@ -422,8 +427,8 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
                   </TableCell>
                   <TableCell>
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                      {getTags(pv).map((tag, idx) => (
-                        <Chip key={idx} label={tag} size="small" variant="outlined" />
+                      {getTags(pv).map((tag) => (
+                        <Chip key={tag} label={tag} size="small" variant="outlined" />
                       ))}
                     </Box>
                   </TableCell>
@@ -624,7 +629,7 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
                             },
                           });
                         }}
-                        useIds={true}
+                        useIds
                       />
                     ))}
                   </Stack>
@@ -635,8 +640,8 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
                     Tags
                   </Typography>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
-                    {getTags(selectedPV).map((tag, idx) => (
-                      <Chip key={idx} label={tag} size="small" />
+                    {getTags(selectedPV).map((tag) => (
+                      <Chip key={tag} label={tag} size="small" />
                     ))}
                   </Box>
                 </Box>
@@ -736,7 +741,7 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
                         },
                       });
                     }}
-                    useIds={true}
+                    useIds
                   />
                 ))}
               </Stack>
@@ -760,4 +765,4 @@ export const PVBrowserPage: React.FC<PVBrowserPageProps> = ({
       />
     </Box>
   );
-};
+}

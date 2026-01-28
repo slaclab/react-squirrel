@@ -15,7 +15,9 @@ interface HeartbeatState {
 
 class HeartbeatService {
   private pollInterval: number | null = null;
+
   private callbacks: Set<HeartbeatCallback> = new Set();
+
   private lastKnownState: HeartbeatState = {
     alive: true,
     age: null,
@@ -69,6 +71,7 @@ class HeartbeatService {
       this.notifyCallbacks(alive, age);
     } catch (error) {
       // Network error or backend down - assume monitor is dead
+      // eslint-disable-next-line no-console
       console.warn('[HeartbeatService] Check failed:', error);
       this.lastKnownState = { alive: false, age: null, timestamp: null };
       this.notifyCallbacks(false, null);

@@ -1,4 +1,4 @@
-import React from 'react';
+import { ReactElement } from 'react';
 import {
   Box,
   Drawer,
@@ -34,7 +34,34 @@ interface SidebarProps {
   onSaveSnapshot?: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ open, onToggle, onSaveSnapshot }) => {
+function getStatusBackgroundColor(hasError: boolean, hasSnapshotId: boolean): string {
+  if (hasError) {
+    return 'rgba(244, 67, 54, 0.2)';
+  }
+  if (hasSnapshotId) {
+    return 'rgba(76, 175, 80, 0.2)';
+  }
+  return 'rgba(33, 150, 243, 0.2)';
+}
+
+function getHoverBackgroundColor(hasError: boolean): Record<string, string> {
+  if (hasError) {
+    return { backgroundColor: 'rgba(244, 67, 54, 0.3)' };
+  }
+  return { backgroundColor: 'rgba(76, 175, 80, 0.3)' };
+}
+
+function getStatusMessage(isCreating: boolean, message: string | null, hasError: boolean): string {
+  if (isCreating) {
+    return message || 'Creating snapshot...';
+  }
+  if (hasError) {
+    return 'Failed - Click to dismiss';
+  }
+  return 'Snapshot ready - Click to view';
+}
+
+export function Sidebar({ open, onToggle, onSaveSnapshot }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { snapshotProgress, clearSnapshot } = useSnapshot();
@@ -45,9 +72,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, onToggle, onSaveSnapshot
     { title: 'Configure Tags', icon: <LabelIcon />, path: '/tags' },
   ];
 
-  const isActive = (path: string) => {
-    return location.pathname === path || location.pathname.startsWith(path + '/');
-  };
+  const isActive = (path: string) =>
+    location.pathname === path || location.pathname.startsWith(`${path}/`);
 
   const handleSnapshotClick = () => {
     if (snapshotProgress.snapshotId) {
@@ -61,7 +87,30 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, onToggle, onSaveSnapshot
   };
 
   // Determine if we should show the status indicator
-  const showStatus = snapshotProgress.isCreating || snapshotProgress.snapshotId || snapshotProgress.error;
+  const showStatus =
+    snapshotProgress.isCreating || snapshotProgress.snapshotId || snapshotProgress.error;
+
+  const renderStatusIcon = (): ReactElement => {
+    if (snapshotProgress.isCreating) {
+      if (snapshotProgress.progress !== null) {
+        return (
+          <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+            <CircularProgress
+              variant="determinate"
+              value={snapshotProgress.progress}
+              size={16}
+              sx={{ color: '#2196f3' }}
+            />
+          </Box>
+        );
+      }
+      return <CircularProgress size={16} sx={{ color: '#2196f3' }} />;
+    }
+    if (snapshotProgress.error) {
+      return <ErrorIcon sx={{ color: '#f44336', fontSize: 16 }} />;
+    }
+    return <CheckCircleIcon sx={{ color: '#4caf50', fontSize: 16 }} />;
+  };
 
   return (
     <Drawer
@@ -149,38 +198,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, onToggle, onSaveSnapshot
               mb: 1,
               p: 1,
               borderRadius: 1,
-              backgroundColor: snapshotProgress.error
-                ? 'rgba(244, 67, 54, 0.2)'
-                : snapshotProgress.snapshotId
-                  ? 'rgba(76, 175, 80, 0.2)'
-                  : 'rgba(33, 150, 243, 0.2)',
+              backgroundColor: getStatusBackgroundColor(
+                !!snapshotProgress.error,
+                !!snapshotProgress.snapshotId
+              ),
               cursor: snapshotProgress.isCreating ? 'default' : 'pointer',
               '&:hover': snapshotProgress.isCreating
                 ? {}
-                : { backgroundColor: snapshotProgress.error
-                    ? 'rgba(244, 67, 54, 0.3)'
-                    : 'rgba(76, 175, 80, 0.3)' },
+                : getHoverBackgroundColor(!!snapshotProgress.error),
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              {snapshotProgress.isCreating ? (
-                snapshotProgress.progress !== null ? (
-                  <Box sx={{ position: 'relative', display: 'inline-flex' }}>
-                    <CircularProgress
-                      variant="determinate"
-                      value={snapshotProgress.progress}
-                      size={16}
-                      sx={{ color: '#2196f3' }}
-                    />
-                  </Box>
-                ) : (
-                  <CircularProgress size={16} sx={{ color: '#2196f3' }} />
-                )
-              ) : snapshotProgress.error ? (
-                <ErrorIcon sx={{ color: '#f44336', fontSize: 16 }} />
-              ) : (
-                <CheckCircleIcon sx={{ color: '#4caf50', fontSize: 16 }} />
-              )}
+              {renderStatusIcon()}
               {open && (
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Typography
@@ -193,11 +222,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, onToggle, onSaveSnapshot
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    {snapshotProgress.isCreating
-                      ? snapshotProgress.message || 'Creating snapshot...'
-                      : snapshotProgress.error
-                        ? 'Failed - Click to dismiss'
-                        : 'Snapshot ready - Click to view'}
+                    {getStatusMessage(
+                      snapshotProgress.isCreating,
+                      snapshotProgress.message,
+                      !!snapshotProgress.error
+                    )}
                   </Typography>
                   {snapshotProgress.isCreating && snapshotProgress.progress !== null && (
                     <Typography
@@ -271,4 +300,4 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, onToggle, onSaveSnapshot
       </Box>
     </Drawer>
   );
-};
+}

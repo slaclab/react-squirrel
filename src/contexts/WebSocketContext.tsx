@@ -6,6 +6,7 @@ import {
   useCallback,
   useRef,
   ReactNode,
+  useMemo,
 } from 'react';
 import { wsService } from '../services/websocketService';
 import { EpicsData } from '../types';
@@ -24,10 +25,7 @@ interface WebSocketProviderProps {
   autoConnect?: boolean;
 }
 
-export function WebSocketProvider({
-  children,
-  autoConnect = true,
-}: WebSocketProviderProps) {
+export function WebSocketProvider({ children, autoConnect = true }: WebSocketProviderProps) {
   const [isConnected, setIsConnected] = useState(false);
   const [liveValues, setLiveValues] = useState<Map<string, EpicsData>>(new Map());
   const unsubscribeFns = useRef<Map<string, () => void>>(new Map());
@@ -40,19 +38,19 @@ export function WebSocketProvider({
     }
 
     const unsubConnection = wsService.onConnectionChange(setIsConnected);
+    // Copy ref value to local variable for cleanup
+    const currentUnsubscribeFns = unsubscribeFns.current;
 
     return () => {
       unsubConnection();
-      unsubscribeFns.current.forEach((unsub) => unsub());
-      unsubscribeFns.current.clear();
+      currentUnsubscribeFns.forEach((unsub) => unsub());
+      currentUnsubscribeFns.clear();
       wsService.disconnect();
     };
   }, [autoConnect]);
 
   const subscribeToPVs = useCallback((pvNames: string[]) => {
-    console.log('[WSContext] subscribeToPVs called with', pvNames.length, 'PVs');
     // Register callbacks FIRST before sending subscribe message
-    let newCallbacks = 0;
     pvNames.forEach((pvName) => {
       if (unsubscribeFns.current.has(pvName)) return;
 
@@ -65,9 +63,7 @@ export function WebSocketProvider({
       });
 
       unsubscribeFns.current.set(pvName, unsub);
-      newCallbacks++;
     });
-    console.log('[WSContext] Registered', newCallbacks, 'new callbacks');
 
     wsService.subscribeToPVs(pvNames);
   }, []);
@@ -92,18 +88,17 @@ export function WebSocketProvider({
     });
   }, []);
 
-  return (
-    <WebSocketContext.Provider
-      value={{
-        isConnected,
-        subscribeToPVs,
-        unsubscribeFromPVs,
-        liveValues,
-      }}
-    >
-      {children}
-    </WebSocketContext.Provider>
+  const contextValue = useMemo(
+    () => ({
+      isConnected,
+      subscribeToPVs,
+      unsubscribeFromPVs,
+      liveValues,
+    }),
+    [isConnected, subscribeToPVs, unsubscribeFromPVs, liveValues]
   );
+
+  return <WebSocketContext.Provider value={contextValue}>{children}</WebSocketContext.Provider>;
 }
 
 export function useWebSocket(): WebSocketContextValue {

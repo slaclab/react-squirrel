@@ -6,6 +6,7 @@ import { API_CONFIG, ApiResultResponse } from '../config/api';
 
 class APIClient {
   private baseURL: string;
+
   private timeout: number;
 
   constructor() {
@@ -13,10 +14,7 @@ class APIClient {
     this.timeout = API_CONFIG.timeout;
   }
 
-  private async request<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
+  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
 
     const controller = new AbortController();
@@ -38,6 +36,7 @@ class APIClient {
         // Try to get error details from response body
         try {
           const errorData = await response.text();
+          // eslint-disable-next-line no-console
           console.error('Server error response:', errorData);
           throw new Error(`HTTP error! status: ${response.status}, details: ${errorData}`);
         } catch {
@@ -61,13 +60,14 @@ class APIClient {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async get<T>(endpoint: string, params?: Record<string, any>): Promise<T> {
     const searchParams = new URLSearchParams();
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
           if (Array.isArray(value)) {
-            value.forEach(v => searchParams.append(key, String(v)));
+            value.forEach((v) => searchParams.append(key, String(v)));
           } else {
             searchParams.append(key, String(value));
           }
@@ -81,6 +81,7 @@ class APIClient {
     return this.request<T>(url, { method: 'GET' });
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async post<T>(endpoint: string, data?: any): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'POST',
@@ -88,6 +89,7 @@ class APIClient {
     });
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async put<T>(endpoint: string, data?: any): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'PUT',
@@ -95,6 +97,7 @@ class APIClient {
     });
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async delete<T>(endpoint: string, params?: Record<string, any>): Promise<T> {
     const searchParams = new URLSearchParams();
     if (params) {

@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * WebSocket service for real-time PV updates
  */
@@ -19,13 +20,21 @@ interface WebSocketMessage {
 
 class WebSocketService {
   private socket: WebSocket | null = null;
+
   private reconnectAttempts = 0;
+
   private maxReconnectAttempts = 10;
+
   private reconnectDelay = 1000;
+
   private subscriptions = new Map<string, Set<PVUpdateCallback>>();
+
   private pendingSubscriptions: string[] = [];
+
   private connectionCallbacks = new Set<ConnectionCallback>();
+
   private isConnecting = false;
+
   private wsUrl: string | null = null;
 
   /**
@@ -37,10 +46,11 @@ class WebSocketService {
     }
 
     this.isConnecting = true;
-    this.wsUrl = url || this.getDefaultWsUrl();
+    const wsUrl = url || WebSocketService.getDefaultWsUrl();
+    this.wsUrl = wsUrl;
 
     try {
-      this.socket = new WebSocket(this.wsUrl);
+      this.socket = new WebSocket(wsUrl);
 
       this.socket.onopen = () => {
         console.log('[WS] Connected to', this.wsUrl);
@@ -64,7 +74,11 @@ class WebSocketService {
       this.socket.onmessage = (event) => {
         try {
           const data: WebSocketMessage = JSON.parse(event.data);
-          console.log('[WS] Received message:', data.type, data.values ? `${Object.keys(data.values).length} values` : '');
+          console.log(
+            '[WS] Received message:',
+            data.type,
+            data.values ? `${Object.keys(data.values).length} values` : ''
+          );
           this.handleMessage(data);
         } catch (err) {
           console.error('Failed to parse WebSocket message:', err);
@@ -193,7 +207,7 @@ class WebSocketService {
 
   // Private methods
 
-  private getDefaultWsUrl(): string {
+  private static getDefaultWsUrl(): string {
     // Use same host - Vite proxy will forward WebSocket connections
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     return `${protocol}//${window.location.host}/v1/ws/pvs`;
@@ -239,6 +253,9 @@ class WebSocketService {
       case 'error':
         console.error('WebSocket error:', data.message || data.error);
         break;
+      default:
+        // Unknown message type - ignore
+        break;
     }
   }
 
@@ -271,18 +288,17 @@ class WebSocketService {
       return;
     }
 
-    const delay = Math.min(
-      this.reconnectDelay * Math.pow(2, this.reconnectAttempts),
-      30000
-    );
+    const delay = Math.min(this.reconnectDelay * 2 ** this.reconnectAttempts, 30000);
 
     // Only log first few attempts to avoid console spam
     if (this.reconnectAttempts < 3) {
-      console.log(`[WS] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`);
+      console.log(
+        `[WS] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`
+      );
     }
 
     setTimeout(() => {
-      this.reconnectAttempts++;
+      this.reconnectAttempts += 1;
       this.connect(this.wsUrl || undefined);
     }, delay);
   }

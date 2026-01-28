@@ -4,10 +4,6 @@ import { Snapshot } from '../types';
 import { useSnapshots, useDeleteSnapshot } from '../hooks';
 import { useAdminMode } from '../contexts/AdminModeContext';
 
-export const Route = createFileRoute('/snapshots')({
-  component: Snapshots,
-});
-
 function Snapshots() {
   const navigate = useNavigate();
   const { isAdminMode } = useAdminMode();
@@ -49,3 +45,7 @@ function Snapshots() {
     />
   );
 }
+
+export const Route = createFileRoute('/snapshots')({
+  component: Snapshots,
+});

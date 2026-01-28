@@ -33,11 +33,13 @@ const mapStatus = (status?: number): Status => {
 const mapSnapshotDTOtoSnapshot = (dto: SnapshotDTO): Snapshot => {
   // Debug: log first PV values to see structure
   if (dto.pvValues.length > 0) {
+    // eslint-disable-next-line no-console
     console.log('[Snapshot] First PV value from backend:', dto.pvValues[0]);
     // Find a PV with setpoint value for debugging
     const withSetpoint = dto.pvValues.find((pv) => pv.setpointValue !== null);
     const withReadback = dto.pvValues.find((pv) => pv.readbackValue !== null);
     if (withSetpoint) {
+      // eslint-disable-next-line no-console
       console.log(
         '[Snapshot] Sample PV with setpoint:',
         withSetpoint.pvName,
@@ -45,6 +47,7 @@ const mapSnapshotDTOtoSnapshot = (dto: SnapshotDTO): Snapshot => {
       );
     }
     if (withReadback) {
+      // eslint-disable-next-line no-console
       console.log(
         '[Snapshot] Sample PV with readback:',
         withReadback.pvName,
@@ -54,6 +57,7 @@ const mapSnapshotDTOtoSnapshot = (dto: SnapshotDTO): Snapshot => {
     // Count how many have values
     const setpointCount = dto.pvValues.filter((pv) => pv.setpointValue !== null).length;
     const readbackCount = dto.pvValues.filter((pv) => pv.readbackValue !== null).length;
+    // eslint-disable-next-line no-console
     console.log(
       `[Snapshot] Values: ${setpointCount} with setpoint, ${readbackCount} with readback out of ${dto.pvValues.length} total`
     );
@@ -121,18 +125,10 @@ interface SearchParams {
   id?: string;
 }
 
-export const Route = createFileRoute('/snapshot-details')({
-  validateSearch: (search: Record<string, unknown>): SearchParams => {
-    return {
-      id: search.id as string | undefined,
-    };
-  },
-  component: SnapshotDetails,
-});
-
 function SnapshotDetails() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  // eslint-disable-next-line @typescript-eslint/no-use-before-define
   const { id } = Route.useSearch();
 
   // Fetch all PVs (no pagination)
@@ -145,7 +141,9 @@ function SnapshotDetails() {
   }, [navigate, queryClient]);
 
   const handleRestore = useCallback((pvs: PV[]) => {
+    // eslint-disable-next-line no-console
     console.log('Restoring PVs:', pvs);
+    // eslint-disable-next-line no-alert
     alert(`Restoring ${pvs.length} PV(s) - This feature is not yet implemented`);
   }, []);
 
@@ -234,3 +232,10 @@ function SnapshotDetails() {
     />
   );
 }
+
+export const Route = createFileRoute('/snapshot-details')({
+  validateSearch: (search: Record<string, unknown>): SearchParams => ({
+    id: search.id as string | undefined,
+  }),
+  component: SnapshotDetails,
+});

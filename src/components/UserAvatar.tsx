@@ -1,21 +1,17 @@
-import React from 'react';
+import { useState, MouseEvent } from 'react';
 import { Box, Typography, Menu, MenuItem, IconButton } from '@mui/material';
 import { AccountCircle } from '@mui/icons-material';
 
 interface UserAvatarProps {
   userName?: string;
-  userInitials?: string;
   isAdmin?: boolean;
 }
 
-export const UserAvatar: React.FC<UserAvatarProps> = ({
-  userName = 'Test User',
-  isAdmin = false,
-}) => {
-  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+export function UserAvatar({ userName = 'Test User', isAdmin = false }: UserAvatarProps) {
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
 
-  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
+  const handleClick = (event: MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   };
 
@@ -71,4 +67,4 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
       </Menu>
     </Box>
   );
-};
+}

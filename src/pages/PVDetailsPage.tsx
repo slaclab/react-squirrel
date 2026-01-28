@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Box,
   Paper,
@@ -11,7 +10,7 @@ import {
   IconButton,
 } from '@mui/material';
 import { ArrowBack as ArrowBackIcon, Edit as EditIcon } from '@mui/icons-material';
-import { PV } from '../types';
+import { PV, AnyEpicsType } from '../types';
 
 interface PVDetailsPageProps {
   pv: PV | null;
@@ -20,12 +19,7 @@ interface PVDetailsPageProps {
   isAdmin?: boolean;
 }
 
-export const PVDetailsPage: React.FC<PVDetailsPageProps> = ({
-  pv,
-  onBack,
-  onEdit,
-  isAdmin = false,
-}) => {
+export function PVDetailsPage({ pv, onBack, onEdit, isAdmin = false }: PVDetailsPageProps) {
   if (!pv) {
     return (
       <Box sx={{ p: 3 }}>
@@ -36,14 +30,14 @@ export const PVDetailsPage: React.FC<PVDetailsPageProps> = ({
     );
   }
 
-  const formatValue = (value: any): string => {
+  const formatValue = (value: AnyEpicsType | undefined): string => {
     if (value === null || value === undefined) return '--';
     if (typeof value === 'number') return value.toFixed(3);
     return String(value);
   };
 
-  const formatTimestamp = (date: Date) => {
-    return date.toLocaleString('en-US', {
+  const formatTimestamp = (date: Date) =>
+    date.toLocaleString('en-US', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -52,12 +46,11 @@ export const PVDetailsPage: React.FC<PVDetailsPageProps> = ({
       second: '2-digit',
       hour12: false,
     });
-  };
 
-  const getTags = (pv: PV): string[] => {
+  const getTags = (pvData: PV): string[] => {
     const tags: string[] = [];
-    Object.values(pv.tags).forEach((tagSet: any) => {
-      if (typeof tagSet === 'object') {
+    Object.values(pvData.tags).forEach((tagSet: unknown) => {
+      if (typeof tagSet === 'object' && tagSet !== null) {
         tags.push(...Object.values(tagSet).filter((t): t is string => typeof t === 'string'));
       }
     });
@@ -180,8 +173,8 @@ export const PVDetailsPage: React.FC<PVDetailsPageProps> = ({
           <Grid item xs={12}>
             {getTags(pv).length > 0 ? (
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                {getTags(pv).map((tag, idx) => (
-                  <Chip key={idx} label={tag} color="primary" variant="outlined" />
+                {getTags(pv).map((tag) => (
+                  <Chip key={tag} label={tag} color="primary" variant="outlined" />
                 ))}
               </Box>
             ) : (
@@ -220,9 +213,7 @@ export const PVDetailsPage: React.FC<PVDetailsPageProps> = ({
               <Typography variant="caption" color="text.secondary">
                 Last Setpoint Update
               </Typography>
-              <Typography variant="body2">
-                {formatTimestamp(pv.setpoint_data.timestamp)}
-              </Typography>
+              <Typography variant="body2">{formatTimestamp(pv.setpoint_data.timestamp)}</Typography>
             </Grid>
           )}
 
@@ -231,13 +222,11 @@ export const PVDetailsPage: React.FC<PVDetailsPageProps> = ({
               <Typography variant="caption" color="text.secondary">
                 Last Readback Update
               </Typography>
-              <Typography variant="body2">
-                {formatTimestamp(pv.readback_data.timestamp)}
-              </Typography>
+              <Typography variant="body2">{formatTimestamp(pv.readback_data.timestamp)}</Typography>
             </Grid>
           )}
         </Grid>
       </Paper>
     </Box>
   );
-};
+}

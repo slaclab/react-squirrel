@@ -1,4 +1,3 @@
-import React from 'react';
 import { IconButton, Typography, Stack } from '@mui/material';
 import { ArrowBack } from '@mui/icons-material';
 import { Snapshot } from '../types';
@@ -8,9 +7,9 @@ interface SnapshotHeaderProps {
   onBack: () => void;
 }
 
-export const SnapshotHeader: React.FC<SnapshotHeaderProps> = ({ snapshot, onBack }) => {
-  const formatTimestamp = (date: Date) => {
-    return date.toLocaleString('en-US', {
+export function SnapshotHeader({ snapshot, onBack }: SnapshotHeaderProps) {
+  const formatTimestamp = (date: Date) =>
+    date.toLocaleString('en-US', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -19,7 +18,6 @@ export const SnapshotHeader: React.FC<SnapshotHeaderProps> = ({ snapshot, onBack
       second: '2-digit',
       hour12: false,
     });
-  };
 
   return (
     <Stack direction="row" spacing={1.5} alignItems="center" sx={{ py: 1.5, mb: 2 }}>
@@ -43,4 +41,4 @@ export const SnapshotHeader: React.FC<SnapshotHeaderProps> = ({ snapshot, onBack
       </Typography>
     </Stack>
   );
-};
+}

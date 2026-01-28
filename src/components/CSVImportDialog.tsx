@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -20,29 +20,50 @@ import {
   Stack,
 } from '@mui/material';
 import { Upload } from '@mui/icons-material';
-import { parseCSVToPVs, createTagMapping, createValidationSummary, ParsedCSVRow } from '../utils/csvParser';
+import {
+  parseCSVToPVs,
+  createTagMapping,
+  createValidationSummary,
+  ParsedCSVRow,
+} from '../utils/csvParser';
 
 interface CSVImportDialogProps {
   open: boolean;
   onClose: () => void;
   onImport: (data: ParsedCSVRow[]) => Promise<void>;
-  availableTagGroups: Array<{ id: string; name: string; tags: Array<{ id: string; name: string }> }>;
+  availableTagGroups: Array<{
+    id: string;
+    name: string;
+    tags: Array<{ id: string; name: string }>;
+  }>;
 }
 
-export const CSVImportDialog: React.FC<CSVImportDialogProps> = ({
+export function CSVImportDialog({
   open,
   onClose,
   onImport,
   availableTagGroups,
-}) => {
+}: CSVImportDialogProps) {
   const [csvData, setCSVData] = useState<ParsedCSVRow[]>([]);
   const [parseErrors, setParseErrors] = useState<string[]>([]);
   const [validationSummary, setValidationSummary] = useState<string>('');
   const [importing, setImporting] = useState(false);
   const [fileSelected, setFileSelected] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+
+  const handleClose = () => {
+    setCSVData([]);
+    setParseErrors([]);
+    setValidationSummary('');
+    setFileSelected(false);
+    setImporting(false);
+    setImportError(null);
+    onClose();
+  };
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
+    const inputElement = event.target;
     if (!file) return;
 
     try {
@@ -67,16 +88,16 @@ export const CSVImportDialog: React.FC<CSVImportDialogProps> = ({
         const allRejectedGroups = new Set<string>();
         const allRejectedValues: Record<string, Set<string>> = {};
 
-        result.data.forEach(row => {
+        result.data.forEach((row) => {
           const mapping = createTagMapping(row.groups, availableTagGroups);
 
-          mapping.rejectedGroups.forEach(group => allRejectedGroups.add(group));
+          mapping.rejectedGroups.forEach((group) => allRejectedGroups.add(group));
 
           Object.entries(mapping.rejectedValues).forEach(([group, values]) => {
             if (!allRejectedValues[group]) {
               allRejectedValues[group] = new Set();
             }
-            values.forEach(value => allRejectedValues[group].add(value));
+            values.forEach((value) => allRejectedValues[group].add(value));
           });
         });
 
@@ -91,38 +112,31 @@ export const CSVImportDialog: React.FC<CSVImportDialogProps> = ({
         setValidationSummary(summary);
       }
     } catch (error) {
-      setParseErrors([`Failed to read CSV file: ${error instanceof Error ? error.message : 'Unknown error'}`]);
+      setParseErrors([
+        `Failed to read CSV file: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      ]);
       setCSVData([]);
       setValidationSummary('');
       setFileSelected(false);
     }
 
     // Reset file input
-    event.target.value = '';
+    inputElement.value = '';
   };
 
   const handleImport = async () => {
     if (csvData.length === 0) return;
 
     setImporting(true);
+    setImportError(null);
     try {
       await onImport(csvData);
       handleClose();
     } catch (error) {
-      console.error('Import failed:', error);
-      alert(`Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setImportError(`Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setImporting(false);
     }
-  };
-
-  const handleClose = () => {
-    setCSVData([]);
-    setParseErrors([]);
-    setValidationSummary('');
-    setFileSelected(false);
-    setImporting(false);
-    onClose();
   };
 
   return (
@@ -132,14 +146,14 @@ export const CSVImportDialog: React.FC<CSVImportDialogProps> = ({
         <Stack spacing={2} sx={{ mt: 1 }}>
           {/* File Upload Section */}
           <Box>
-            <input
-              accept=".csv"
-              style={{ display: 'none' }}
-              id="csv-file-input"
-              type="file"
-              onChange={handleFileSelect}
-            />
             <label htmlFor="csv-file-input">
+              <input
+                accept=".csv"
+                style={{ display: 'none' }}
+                id="csv-file-input"
+                type="file"
+                onChange={handleFileSelect}
+              />
               <Button
                 variant="contained"
                 component="span"
@@ -157,21 +171,27 @@ export const CSVImportDialog: React.FC<CSVImportDialogProps> = ({
               <strong>CSV Format Requirements:</strong>
             </Typography>
             <Typography variant="body2" component="div">
-              • Required: At least one column named "Setpoint" or "Readback"
+              • Required: At least one column named &quot;Setpoint&quot; or &quot;Readback&quot;
               <br />
-              • Optional: "Device", "Description" columns
+              • Optional: &quot;Device&quot;, &quot;Description&quot; columns
               <br />
               • Tag Groups: Any additional columns will be treated as tag groups
-              <br />
-              • Tag values can be comma-separated (e.g., "tag1, tag2")
+              <br />• Tag values can be comma-separated (e.g., &quot;tag1, tag2&quot;)
             </Typography>
           </Alert>
+
+          {/* Import Error */}
+          {importError && (
+            <Alert severity="error">
+              <Typography variant="body2">{importError}</Typography>
+            </Alert>
+          )}
 
           {/* Parse Errors */}
           {parseErrors.length > 0 && (
             <Alert severity="error">
-              {parseErrors.map((error, index) => (
-                <Typography key={index} variant="body2">
+              {parseErrors.map((error) => (
+                <Typography key={error} variant="body2">
                   {error}
                 </Typography>
               ))}
@@ -208,8 +228,8 @@ export const CSVImportDialog: React.FC<CSVImportDialogProps> = ({
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {csvData.map((row, index) => (
-                      <TableRow key={index}>
+                    {csvData.map((row) => (
+                      <TableRow key={row.Setpoint || row.Readback}>
                         <TableCell sx={{ fontFamily: 'monospace' }}>{row.Setpoint}</TableCell>
                         <TableCell sx={{ fontFamily: 'monospace' }}>{row.Readback}</TableCell>
                         <TableCell>{row.Device}</TableCell>
@@ -221,9 +241,9 @@ export const CSVImportDialog: React.FC<CSVImportDialogProps> = ({
                         <TableCell>
                           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                             {Object.entries(row.groups).map(([groupName, values]) =>
-                              values.map((value, vIdx) => (
+                              values.map((value) => (
                                 <Chip
-                                  key={`${groupName}-${vIdx}`}
+                                  key={`${groupName}-${value}`}
                                   label={`${groupName}: ${value}`}
                                   size="small"
                                   variant="outlined"
@@ -251,9 +271,11 @@ export const CSVImportDialog: React.FC<CSVImportDialogProps> = ({
           disabled={csvData.length === 0 || importing}
           startIcon={importing ? <CircularProgress size={16} /> : undefined}
         >
-          {importing ? 'Importing...' : `Import ${csvData.length} PV${csvData.length !== 1 ? 's' : ''}`}
+          {importing
+            ? 'Importing...'
+            : `Import ${csvData.length} PV${csvData.length !== 1 ? 's' : ''}`}
         </Button>
       </DialogActions>
     </Dialog>
   );
-};
+}

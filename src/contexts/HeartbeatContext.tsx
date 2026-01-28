@@ -5,7 +5,7 @@
  * Components can use useHeartbeat() to show warnings when data may be stale.
  */
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useMemo } from 'react';
 import { heartbeatService } from '../services/heartbeatService';
 
 interface HeartbeatContextValue {
@@ -51,11 +51,12 @@ export function HeartbeatProvider({ children, pollIntervalMs = 2000 }: Heartbeat
     };
   }, [pollIntervalMs]);
 
-  return (
-    <HeartbeatContext.Provider value={{ isMonitorAlive, heartbeatAgeSeconds, lastChecked }}>
-      {children}
-    </HeartbeatContext.Provider>
+  const contextValue = useMemo(
+    () => ({ isMonitorAlive, heartbeatAgeSeconds, lastChecked }),
+    [isMonitorAlive, heartbeatAgeSeconds, lastChecked]
   );
+
+  return <HeartbeatContext.Provider value={contextValue}>{children}</HeartbeatContext.Provider>;
 }
 
 /**

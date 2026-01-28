@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react';
+import { useMemo, useCallback } from 'react';
 import { Box } from '@mui/material';
 import { VirtualTable, createPVColumns, PVRow } from './VirtualTable';
 import { useLiveValues } from '../hooks';
@@ -16,13 +16,13 @@ interface PVTableProps {
 /**
  * PV Table component with virtualization and live value support
  */
-export const PVTable: React.FC<PVTableProps> = ({
+export function PVTable({
   pvs,
   searchFilter = '',
   onSelectionChange,
   showLiveValues = true,
   isLoading = false,
-}) => {
+}: PVTableProps) {
   // Filter PVs based on search (client-side filtering for now)
   const filteredPVs = useMemo(() => {
     if (!searchFilter) return pvs;
@@ -55,32 +55,34 @@ export const PVTable: React.FC<PVTableProps> = ({
   });
 
   // Transform PVs to table row format
-  const tableData: PVRow[] = useMemo(() => {
-    return filteredPVs.map((pv) => {
-      const liveSetpoint = liveValues.get(pv.setpoint) || null;
-      const liveReadback = liveValues.get(pv.readback) || null;
+  const tableData: PVRow[] = useMemo(
+    () =>
+      filteredPVs.map((pv) => {
+        const liveSetpoint = liveValues.get(pv.setpoint) || null;
+        const liveReadback = liveValues.get(pv.readback) || null;
 
-      const withinTolerance = checkTolerance(
-        pv.setpoint_data?.data as number | string | null | undefined,
-        liveSetpoint?.data as number | string | null | undefined,
-        pv.abs_tolerance ?? 0,
-        pv.rel_tolerance ?? 0
-      );
+        const withinTolerance = checkTolerance(
+          pv.setpoint_data?.data as number | string | null | undefined,
+          liveSetpoint?.data as number | string | null | undefined,
+          pv.abs_tolerance ?? 0,
+          pv.rel_tolerance ?? 0
+        );
 
-      return {
-        id: pv.uuid,
-        device: pv.device,
-        pvName: pv.setpoint,
-        savedSetpoint: pv.setpoint_data || null,
-        liveSetpoint: showLiveValues ? liveSetpoint : null,
-        savedReadback: pv.readback_data || null,
-        liveReadback: showLiveValues ? liveReadback : null,
-        severity: pv.setpoint_data?.severity,
-        withinTolerance,
-        config: pv.config,
-      };
-    });
-  }, [filteredPVs, liveValues, showLiveValues]);
+        return {
+          id: pv.uuid,
+          device: pv.device,
+          pvName: pv.setpoint,
+          savedSetpoint: pv.setpoint_data || null,
+          liveSetpoint: showLiveValues ? liveSetpoint : null,
+          savedReadback: pv.readback_data || null,
+          liveReadback: showLiveValues ? liveReadback : null,
+          severity: pv.setpoint_data?.severity,
+          withinTolerance,
+          config: pv.config,
+        };
+      }),
+    [filteredPVs, liveValues, showLiveValues]
+  );
 
   // Column configuration
   const columns = useMemo(
@@ -93,9 +95,8 @@ export const PVTable: React.FC<PVTableProps> = ({
     [onSelectionChange, showLiveValues]
   );
 
-  const handleRowClick = (row: PVRow) => {
+  const handleRowClick = (_row: PVRow) => {
     // Could be used for opening PV details
-    console.log('Row clicked:', row);
   };
 
   // Handle selection change - map PVRow back to PV
@@ -129,6 +130,6 @@ export const PVTable: React.FC<PVTableProps> = ({
       />
     </Box>
   );
-};
+}
 
 export default PVTable;

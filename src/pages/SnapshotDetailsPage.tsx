@@ -9,7 +9,6 @@ import {
   DialogActions,
   Typography,
   CircularProgress,
-  Link,
   List,
   ListItem,
   ListItemButton,
@@ -69,6 +68,7 @@ export function SnapshotDetailsPage({
                 tags: groupDetail.tags,
               };
             } catch (err) {
+              // eslint-disable-next-line no-console
               console.error(`Failed to fetch details for group ${summary.id}:`, err);
               return {
                 id: summary.id,
@@ -80,6 +80,7 @@ export function SnapshotDetailsPage({
         );
         setTagGroups(detailedGroups);
       } catch (err) {
+        // eslint-disable-next-line no-console
         console.error('Failed to fetch tag groups:', err);
       }
     };
@@ -147,6 +148,7 @@ export function SnapshotDetailsPage({
       const otherSnapshots = snapshots.filter((s) => s.id !== snapshot?.uuid);
       setAvailableSnapshots(otherSnapshots);
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error('Failed to fetch snapshots:', err);
     } finally {
       setLoadingSnapshots(false);

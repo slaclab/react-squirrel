@@ -53,6 +53,7 @@ export interface SnapshotSummaryDTO {
   createdDate: string;
   createdBy: string;
   pvCount?: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   metadataPVs?: Record<string, any>;
 }
 
@@ -61,6 +62,7 @@ export interface SnapshotDTO extends SnapshotSummaryDTO {
 }
 
 export interface EpicsValueDTO {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   value: any;
   status?: number;
   severity?: number;

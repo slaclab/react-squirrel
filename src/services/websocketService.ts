@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * WebSocket service for real-time PV updates
  */

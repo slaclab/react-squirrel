@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import { SnapshotDetailsPage } from './pages';
-import { Snapshot, PV, EpicsData, Severity, Status } from './types';
+import { Snapshot, PV, EpicsData, Severity, Status, AnyEpicsType } from './types';
 
 // Create Material UI theme
 const theme = createTheme({
@@ -45,7 +45,10 @@ const theme = createTheme({
 });
 
 // Sample data for demonstration
-const createSampleEpicsData = (value: any, severity: Severity = Severity.NO_ALARM): EpicsData => ({
+const createSampleEpicsData = (
+  value: AnyEpicsType,
+  severity: Severity = Severity.NO_ALARM
+): EpicsData => ({
   data: value,
   status: Status.NO_ALARM,
   severity,
@@ -132,16 +135,20 @@ function App() {
   const [, setCurrentView] = useState<'list' | 'details'>('details');
 
   const handleBack = () => {
+    // eslint-disable-next-line no-console
     console.log('Navigate back to snapshot list');
     setCurrentView('list');
   };
 
   const handleRestore = (pvs: PV[]) => {
+    // eslint-disable-next-line no-console
     console.log('Restoring PVs:', pvs);
+    // eslint-disable-next-line no-alert
     alert(`Restoring ${pvs.length} PV(s)`);
   };
 
   const handleCompare = (comparisonSnapshotId: string) => {
+    // eslint-disable-next-line no-console
     console.log('Comparing with snapshot ID:', comparisonSnapshotId);
   };
 

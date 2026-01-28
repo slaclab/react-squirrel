@@ -111,11 +111,11 @@ export function PVBrowserPage({
 
   // Effect for infinite scroll
   useEffect(() => {
-    if (!onLoadMore || !hasMore || isLoadingMore) return;
+    if (!onLoadMore || !hasMore || isLoadingMore) return undefined;
 
     const sentinel = sentinelRef.current;
     const container = tableContainerRef.current;
-    if (!sentinel || !container) return;
+    if (!sentinel || !container) return undefined;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -224,7 +224,9 @@ export function PVBrowserPage({
       await onUpdatePV(selectedPV.uuid, updates);
       setSelectedPV(null); // Close drawer on success
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error('Failed to update PV:', err);
+      // eslint-disable-next-line no-alert
       alert(`Failed to update PV: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setIsSaving(false);
@@ -233,12 +235,14 @@ export function PVBrowserPage({
 
   const handleAddPVSubmit = async () => {
     if (!newPVData.pvName.trim()) {
+      // eslint-disable-next-line no-alert
       alert('PV Name is required');
       return;
     }
 
     // Check if readback name is the same as PV name
     if (newPVData.readbackName && newPVData.readbackName === newPVData.pvName) {
+      // eslint-disable-next-line no-alert
       alert('Readback Name must be different from PV Name');
       return;
     }
@@ -258,7 +262,9 @@ export function PVBrowserPage({
         selectedTags: {},
       });
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error('Failed to add PV:', err);
+      // eslint-disable-next-line no-alert
       alert(`Failed to add PV: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
@@ -272,7 +278,7 @@ export function PVBrowserPage({
   // Extract unique tags for display
   const getTags = (pv: PV): string[] => {
     const tags: string[] = [];
-    Object.values(pv.tags).forEach((tagSet: any) => {
+    Object.values(pv.tags).forEach((tagSet: Record<string, string>) => {
       if (typeof tagSet === 'object') {
         tags.push(...Object.values(tagSet).filter((t): t is string => typeof t === 'string'));
       }

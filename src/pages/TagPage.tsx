@@ -124,6 +124,7 @@ export function TagPage({
 
   const handleSave = async () => {
     if (!groupName.trim()) {
+      // eslint-disable-next-line no-alert
       alert('Group name is required');
       return;
     }
@@ -136,13 +137,16 @@ export function TagPage({
       }
       handleCloseDialog();
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error('Failed to save tag group:', err);
+      // eslint-disable-next-line no-alert
       alert(`Failed to save: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
 
   const handleAddNewTag = async () => {
     if (!newTagName.trim()) {
+      // eslint-disable-next-line no-alert
       alert('Tag name is required');
       return;
     }
@@ -158,7 +162,9 @@ export function TagPage({
         setSelectedGroup(updatedGroup);
       }
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error('Failed to add tag:', err);
+      // eslint-disable-next-line no-alert
       alert(`Failed to add tag: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
@@ -169,7 +175,9 @@ export function TagPage({
     try {
       await onEditTag(selectedGroup.id, tag.name, tagName, tagDescription);
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error('Failed to edit tag:', err);
+      // eslint-disable-next-line no-alert
       alert(`Failed to edit tag: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
@@ -190,7 +198,9 @@ export function TagPage({
         setSelectedGroup(updatedGroup);
       }
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error('Failed to delete tag:', err);
+      // eslint-disable-next-line no-alert
       alert(`Failed to delete tag: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
@@ -364,11 +374,7 @@ export function TagPage({
                           onClick={() => handleOpenTagDialog(tag)}
                           color="default"
                         >
-                          {isAdmin ? (
-                            <Edit fontSize="small" />
-                          ) : (
-                            <NoteOutlined fontSize="small" />
-                          )}
+                          {isAdmin ? <Edit fontSize="small" /> : <NoteOutlined fontSize="small" />}
                         </IconButton>
                       )}
                       {isAdmin && onDeleteTag && (

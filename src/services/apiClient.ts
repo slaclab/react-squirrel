@@ -36,6 +36,7 @@ class APIClient {
         // Try to get error details from response body
         try {
           const errorData = await response.text();
+          // eslint-disable-next-line no-console
           console.error('Server error response:', errorData);
           throw new Error(`HTTP error! status: ${response.status}, details: ${errorData}`);
         } catch {
@@ -59,6 +60,7 @@ class APIClient {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async get<T>(endpoint: string, params?: Record<string, any>): Promise<T> {
     const searchParams = new URLSearchParams();
     if (params) {
@@ -79,6 +81,7 @@ class APIClient {
     return this.request<T>(url, { method: 'GET' });
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async post<T>(endpoint: string, data?: any): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'POST',
@@ -86,6 +89,7 @@ class APIClient {
     });
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async put<T>(endpoint: string, data?: any): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'PUT',
@@ -93,6 +97,7 @@ class APIClient {
     });
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async delete<T>(endpoint: string, params?: Record<string, any>): Promise<T> {
     const searchParams = new URLSearchParams();
     if (params) {

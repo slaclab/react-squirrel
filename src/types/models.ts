@@ -55,6 +55,7 @@ export interface EpicsData {
   enums?: string[];
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type TagSet = { [key: string]: any };
 
 export interface Tag {

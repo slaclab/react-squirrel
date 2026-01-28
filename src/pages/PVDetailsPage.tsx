@@ -10,7 +10,7 @@ import {
   IconButton,
 } from '@mui/material';
 import { ArrowBack as ArrowBackIcon, Edit as EditIcon } from '@mui/icons-material';
-import { PV } from '../types';
+import { PV, AnyEpicsType } from '../types';
 
 interface PVDetailsPageProps {
   pv: PV | null;
@@ -30,7 +30,7 @@ export function PVDetailsPage({ pv, onBack, onEdit, isAdmin = false }: PVDetails
     );
   }
 
-  const formatValue = (value: any): string => {
+  const formatValue = (value: AnyEpicsType | undefined): string => {
     if (value === null || value === undefined) return '--';
     if (typeof value === 'number') return value.toFixed(3);
     return String(value);

@@ -56,6 +56,7 @@ export function SnapshotListPage({
       setDeleteDialogOpen(false);
       setSnapshotToDelete(null);
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Failed to delete snapshot:', error);
     } finally {
       setIsDeleting(false);

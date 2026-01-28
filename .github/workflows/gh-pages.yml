@@ -1,0 +1,64 @@
+# This workflow will publish a new version of the documentation to the gh-pages branch
+
+name: Build & Deploy Documentation
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "mkdocs.yml"
+      - "docs/**"
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      MKDOCS_GIT_COMMITTERS_APIKEY: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Important for MkDocs to access commit history
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: 'docs-requirements.txt'
+
+      - name: Install dependencies
+        run: |
+          pip install -r docs-requirements.txt
+
+      - name: Build Docs
+        run: mkdocs build --strict --verbose
+
+      - name: Upload Built Docs
+        uses: actions/upload-artifact@v4
+        with:
+          name: built-docs
+          path: ./site
+
+  deploy:
+    needs: build  # Ensures that the deploy step only runs after the build
+    if: github.event_name == 'push'  # Only run deploy on push events
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Built Docs
+        uses: actions/download-artifact@v4
+        with:
+          name: built-docs
+          path: ./site
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site

@@ -21,7 +21,7 @@ interface TagGroupInfo {
 
 function PVBrowser() {
   const [pvs, setPVs] = useState<PV[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [continuationToken, setContinuationToken] = useState<string | undefined>(undefined);
   const [hasMore, setHasMore] = useState(true);

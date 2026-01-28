@@ -1,0 +1,13 @@
+/* Image styling for light mode */
+[data-md-color-scheme='default'] img {
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Image styling for dark mode */
+[data-md-color-scheme='slate'] img {
+  border: 1px solid #404040;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}

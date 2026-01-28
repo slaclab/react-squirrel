@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Box,
   Drawer,
@@ -30,12 +30,12 @@ interface PVFilterSidebarProps {
   onFiltersChange: (filters: PVFilters) => void;
 }
 
-export const PVFilterSidebar: React.FC<PVFilterSidebarProps> = ({
+export function PVFilterSidebar({
   availableDevices = [],
   availableTags = [],
   filters,
   onFiltersChange,
-}) => {
+}: PVFilterSidebarProps) {
   const [localFilters, setLocalFilters] = useState<PVFilters>(filters);
 
   const handleDeviceToggle = (device: string) => {
@@ -110,12 +110,7 @@ export const PVFilterSidebar: React.FC<PVFilterSidebarProps> = ({
 
         {/* Clear Filters Button */}
         <Box sx={{ p: 2 }}>
-          <Button
-            variant="outlined"
-            size="small"
-            fullWidth
-            onClick={handleClearFilters}
-          >
+          <Button variant="outlined" size="small" fullWidth onClick={handleClearFilters}>
             Clear All Filters
           </Button>
         </Box>
@@ -218,4 +213,4 @@ export const PVFilterSidebar: React.FC<PVFilterSidebarProps> = ({
       </Box>
     </Drawer>
   );
-};
+}

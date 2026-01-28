@@ -121,18 +121,10 @@ interface SearchParams {
   id?: string;
 }
 
-export const Route = createFileRoute('/snapshot-details')({
-  validateSearch: (search: Record<string, unknown>): SearchParams => {
-    return {
-      id: search.id as string | undefined,
-    };
-  },
-  component: SnapshotDetails,
-});
-
 function SnapshotDetails() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  // eslint-disable-next-line @typescript-eslint/no-use-before-define
   const { id } = Route.useSearch();
 
   // Fetch all PVs (no pagination)
@@ -234,3 +226,10 @@ function SnapshotDetails() {
     />
   );
 }
+
+export const Route = createFileRoute('/snapshot-details')({
+  validateSearch: (search: Record<string, unknown>): SearchParams => ({
+    id: search.id as string | undefined,
+  }),
+  component: SnapshotDetails,
+});

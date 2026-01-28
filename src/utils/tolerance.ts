@@ -37,7 +37,7 @@ export function checkTolerance(
   const numLive = Number(liveValue);
 
   // Check for NaN
-  if (isNaN(numSaved) || isNaN(numLive)) {
+  if (Number.isNaN(numSaved) || Number.isNaN(numLive)) {
     return false;
   }
 

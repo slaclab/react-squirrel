@@ -6,6 +6,7 @@ import { API_CONFIG, ApiResultResponse } from '../config/api';
 
 class APIClient {
   private baseURL: string;
+
   private timeout: number;
 
   constructor() {
@@ -13,10 +14,7 @@ class APIClient {
     this.timeout = API_CONFIG.timeout;
   }
 
-  private async request<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
+  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
 
     const controller = new AbortController();
@@ -67,7 +65,7 @@ class APIClient {
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
           if (Array.isArray(value)) {
-            value.forEach(v => searchParams.append(key, String(v)));
+            value.forEach((v) => searchParams.append(key, String(v)));
           } else {
             searchParams.append(key, String(value));
           }

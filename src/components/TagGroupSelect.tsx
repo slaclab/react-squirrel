@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   FormControl,
   Select,
@@ -19,14 +18,14 @@ interface TagGroupSelectProps {
   useIds?: boolean;
 }
 
-export const TagGroupSelect: React.FC<TagGroupSelectProps> = ({
+export function TagGroupSelect({
   groupId,
   groupName,
   tags,
   selectedValues,
   onChange,
   useIds = true,
-}) => {
+}: TagGroupSelectProps) {
   const selectedTagNames = useIds
     ? selectedValues
         .map((id) => tags.find((t) => t.id === id)?.name)
@@ -44,7 +43,7 @@ export const TagGroupSelect: React.FC<TagGroupSelectProps> = ({
   });
 
   const handleChange = (event: SelectChangeEvent<string[]>) => {
-    const value = event.target.value;
+    const { value } = event.target;
     onChange(groupName, typeof value === 'string' ? value.split(',') : value);
   };
 
@@ -140,4 +139,4 @@ export const TagGroupSelect: React.FC<TagGroupSelectProps> = ({
       </Select>
     </FormControl>
   );
-};
+}

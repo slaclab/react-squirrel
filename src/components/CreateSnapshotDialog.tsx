@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -16,10 +16,7 @@ interface CreateSnapshotDialogProps {
   onClose: () => void;
 }
 
-export const CreateSnapshotDialog: React.FC<CreateSnapshotDialogProps> = ({
-  open,
-  onClose,
-}) => {
+export function CreateSnapshotDialog({ open, onClose }: CreateSnapshotDialogProps) {
   const [title, setTitle] = useState('');
   const [comment, setComment] = useState('');
   const { startSnapshot } = useSnapshot();
@@ -76,17 +73,11 @@ export const CreateSnapshotDialog: React.FC<CreateSnapshotDialogProps> = ({
         </Stack>
       </DialogContent>
       <DialogActions>
-        <Button onClick={handleClose}>
-          Cancel
-        </Button>
-        <Button
-          onClick={handleCreate}
-          variant="contained"
-          disabled={!title.trim()}
-        >
+        <Button onClick={handleClose}>Cancel</Button>
+        <Button onClick={handleCreate} variant="contained" disabled={!title.trim()}>
           Start Snapshot
         </Button>
       </DialogActions>
     </Dialog>
   );
-};
+}

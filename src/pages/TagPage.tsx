@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Stack,
@@ -43,7 +43,7 @@ interface TagPageProps {
   onDeleteTag?: (groupId: string, tagName: string) => Promise<void>;
 }
 
-export const TagPage: React.FC<TagPageProps> = ({
+export function TagPage({
   tagGroups = [],
   isAdmin = false,
   onAddGroup,
@@ -52,7 +52,7 @@ export const TagPage: React.FC<TagPageProps> = ({
   onAddTag,
   onEditTag,
   onDeleteTag,
-}) => {
+}: TagPageProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [tagDialogOpen, setTagDialogOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<TagGroup | null>(null);
@@ -74,7 +74,7 @@ export const TagPage: React.FC<TagPageProps> = ({
         setSelectedGroup(updatedGroup);
       }
     }
-  }, [tagGroups]);
+  }, [tagGroups, selectedGroup]);
 
   const handleOpenDialog = (group?: TagGroup) => {
     if (group) {
@@ -137,7 +137,7 @@ export const TagPage: React.FC<TagPageProps> = ({
       handleCloseDialog();
     } catch (err) {
       console.error('Failed to save tag group:', err);
-      alert('Failed to save: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      alert(`Failed to save: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
 
@@ -159,7 +159,7 @@ export const TagPage: React.FC<TagPageProps> = ({
       }
     } catch (err) {
       console.error('Failed to add tag:', err);
-      alert('Failed to add tag: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      alert(`Failed to add tag: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
 
@@ -170,11 +170,12 @@ export const TagPage: React.FC<TagPageProps> = ({
       await onEditTag(selectedGroup.id, tag.name, tagName, tagDescription);
     } catch (err) {
       console.error('Failed to edit tag:', err);
-      alert('Failed to edit tag: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      alert(`Failed to edit tag: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
 
   const handleDeleteTag = async (tag: Tag) => {
+    // eslint-disable-next-line no-alert, no-restricted-globals
     if (!confirm(`Delete tag "${tag.name}"?`)) return;
 
     if (!selectedGroup || !onDeleteTag) return;
@@ -190,12 +191,19 @@ export const TagPage: React.FC<TagPageProps> = ({
       }
     } catch (err) {
       console.error('Failed to delete tag:', err);
-      alert('Failed to delete tag: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      alert(`Failed to delete tag: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
 
   const handleRowClick = (group: TagGroup) => {
     handleOpenDialog(group);
+  };
+
+  const getDialogTitle = () => {
+    if (isAdmin) {
+      return editMode ? 'Edit Tag Group' : 'New Tag Group';
+    }
+    return 'Tag Group Details';
   };
 
   return (
@@ -306,9 +314,7 @@ export const TagPage: React.FC<TagPageProps> = ({
 
       {/* Tag Group Dialog */}
       <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          {isAdmin ? (editMode ? 'Edit Tag Group' : 'New Tag Group') : 'Tag Group Details'}
-        </DialogTitle>
+        <DialogTitle>{getDialogTitle()}</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', p: 0 }}>
           <Box sx={{ px: 3, pt: 1, borderBottom: '1px solid #eee' }}>
             <TextField
@@ -335,51 +341,49 @@ export const TagPage: React.FC<TagPageProps> = ({
             {selectedGroup && selectedGroup.tags.length > 0 ? (
               <List sx={{ p: 0 }} subheader={<ListSubheader>Tags</ListSubheader>}>
                 {selectedGroup.tags.map((tag, idx) => (
-                  <>
-                    <ListItem key={idx} divider={idx < selectedGroup.tags.length - 1}>
-                      <ListItemText
-                        primary={tag.name}
-                        secondary={tag.description}
-                        sx={{ pr: 3, overflow: 'hidden' }}
-                        secondaryTypographyProps={{
-                          variant: 'subtitle2',
-                          style: {
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                          },
-                        }}
-                      />
-                      <ListItemSecondaryAction>
-                        {onEditTag && (
-                          <IconButton
-                            edge="end"
-                            aria-label="edit tag"
-                            size="small"
-                            onClick={() => handleOpenTagDialog(tag)}
-                            color="default"
-                          >
-                            {isAdmin ? (
-                              <Edit fontSize="small" />
-                            ) : (
-                              <NoteOutlined fontSize="small" />
-                            )}
-                          </IconButton>
-                        )}
-                        {isAdmin && onDeleteTag && (
-                          <IconButton
-                            edge="end"
-                            aria-label="delete"
-                            size="small"
-                            onClick={() => handleDeleteTag(tag)}
-                            color="error"
-                          >
-                            <Delete fontSize="small" />
-                          </IconButton>
-                        )}
-                      </ListItemSecondaryAction>
-                    </ListItem>
-                  </>
+                  <ListItem key={tag.id} divider={idx < selectedGroup.tags.length - 1}>
+                    <ListItemText
+                      primary={tag.name}
+                      secondary={tag.description}
+                      sx={{ pr: 3, overflow: 'hidden' }}
+                      secondaryTypographyProps={{
+                        variant: 'subtitle2',
+                        style: {
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        },
+                      }}
+                    />
+                    <ListItemSecondaryAction>
+                      {onEditTag && (
+                        <IconButton
+                          edge="end"
+                          aria-label="edit tag"
+                          size="small"
+                          onClick={() => handleOpenTagDialog(tag)}
+                          color="default"
+                        >
+                          {isAdmin ? (
+                            <Edit fontSize="small" />
+                          ) : (
+                            <NoteOutlined fontSize="small" />
+                          )}
+                        </IconButton>
+                      )}
+                      {isAdmin && onDeleteTag && (
+                        <IconButton
+                          edge="end"
+                          aria-label="delete"
+                          size="small"
+                          onClick={() => handleDeleteTag(tag)}
+                          color="error"
+                        >
+                          <Delete fontSize="small" />
+                        </IconButton>
+                      )}
+                    </ListItemSecondaryAction>
+                  </ListItem>
                 ))}
               </List>
             ) : (
@@ -477,4 +481,4 @@ export const TagPage: React.FC<TagPageProps> = ({
       </Dialog>
     </Box>
   );
-};
+}

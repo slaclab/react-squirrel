@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Box,
   Stack,
@@ -30,12 +30,12 @@ interface SnapshotListPageProps {
   isAdmin: boolean;
 }
 
-export const SnapshotListPage: React.FC<SnapshotListPageProps> = ({
+export function SnapshotListPage({
   snapshots,
   onSnapshotClick,
   onDeleteSnapshot,
   isAdmin,
-}) => {
+}: SnapshotListPageProps) {
   const [searchText, setSearchText] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [snapshotToDelete, setSnapshotToDelete] = useState<Snapshot | null>(null);
@@ -78,8 +78,8 @@ export const SnapshotListPage: React.FC<SnapshotListPageProps> = ({
     );
   }, [snapshots, searchText]);
 
-  const formatTimestamp = (date: Date) => {
-    return date.toLocaleString('en-US', {
+  const formatTimestamp = (date: Date) =>
+    date.toLocaleString('en-US', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -88,7 +88,6 @@ export const SnapshotListPage: React.FC<SnapshotListPageProps> = ({
       second: '2-digit',
       hour12: false,
     });
-  };
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', p: 2 }}>
@@ -220,4 +219,4 @@ export const SnapshotListPage: React.FC<SnapshotListPageProps> = ({
       </Dialog>
     </Box>
   );
-};
+}

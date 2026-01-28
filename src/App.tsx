@@ -48,7 +48,7 @@ const theme = createTheme({
 const createSampleEpicsData = (value: any, severity: Severity = Severity.NO_ALARM): EpicsData => ({
   data: value,
   status: Status.NO_ALARM,
-  severity: severity,
+  severity,
   timestamp: new Date(),
 });
 

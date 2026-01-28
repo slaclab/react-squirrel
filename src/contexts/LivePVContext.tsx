@@ -6,6 +6,7 @@ import {
   useCallback,
   useRef,
   ReactNode,
+  useMemo,
 } from 'react';
 import { API_CONFIG } from '../config/api';
 import { EpicsData } from '../types';
@@ -77,8 +78,6 @@ export function LivePVProvider({
             units?: string;
           }
         >;
-        const valueCount = Object.keys(rawValues).length;
-        console.log('[LivePV] Received', valueCount, 'values from backend');
 
         // Transform backend format to EpicsData format
         setLiveValues((prev) => {
@@ -98,11 +97,8 @@ export function LivePVProvider({
         setLastUpdate(new Date());
         setIsConnected(true);
         setError(null);
-      } else {
-        console.log('[LivePV] Response:', data);
       }
     } catch (err) {
-      console.error('[LivePV] Poll error:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch live values');
       setIsConnected(false);
     }
@@ -111,22 +107,15 @@ export function LivePVProvider({
   // Stable subscribe function - doesn't change reference
   const subscribeToPVs = useCallback(
     (pvNames: string[]) => {
-      console.log('[LivePV] subscribeToPVs called with', pvNames.length, 'PVs');
       let added = 0;
       pvNames.forEach((pv) => {
         if (!subscribedPVs.current.has(pv)) {
           subscribedPVs.current.add(pv);
-          added++;
+          added += 1;
         }
       });
 
       if (added > 0) {
-        console.log(
-          '[LivePV] Added',
-          added,
-          'new PV subscriptions, total:',
-          subscribedPVs.current.size
-        );
         // Trigger immediate poll
         pollValues();
 
@@ -141,7 +130,6 @@ export function LivePVProvider({
 
   // Stable unsubscribe function - doesn't change reference
   const unsubscribeFromPVs = useCallback((pvNames: string[]) => {
-    console.log('[LivePV] unsubscribeFromPVs called with', pvNames.length, 'PVs');
     pvNames.forEach((pv) => {
       subscribedPVs.current.delete(pv);
     });
@@ -161,29 +149,29 @@ export function LivePVProvider({
   }, []);
 
   // Cleanup on unmount
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
       if (pollIntervalRef.current) {
         window.clearInterval(pollIntervalRef.current);
         pollIntervalRef.current = null;
       }
-    };
-  }, []);
-
-  return (
-    <LivePVContext.Provider
-      value={{
-        isConnected,
-        subscribeToPVs,
-        unsubscribeFromPVs,
-        liveValues,
-        lastUpdate,
-        error,
-      }}
-    >
-      {children}
-    </LivePVContext.Provider>
+    },
+    []
   );
+
+  const contextValue = useMemo(
+    () => ({
+      isConnected,
+      subscribeToPVs,
+      unsubscribeFromPVs,
+      liveValues,
+      lastUpdate,
+      error,
+    }),
+    [isConnected, subscribeToPVs, unsubscribeFromPVs, liveValues, lastUpdate, error]
+  );
+
+  return <LivePVContext.Provider value={contextValue}>{children}</LivePVContext.Provider>;
 }
 
 export function useLivePVs(): LivePVContextValue {

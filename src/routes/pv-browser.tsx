@@ -35,10 +35,6 @@ function PVBrowser() {
 
   const PAGE_SIZE = 100; // Load 100 PVs at a time
 
-  useEffect(() => {
-    fetchTagGroupsAndPVs();
-  }, []);
-
   // Handle search query or filter changes with debouncing
   useEffect(() => {
     const delayTimer = setTimeout(() => {
@@ -90,6 +86,11 @@ function PVBrowser() {
     }
   };
 
+  // Call fetchTagGroupsAndPVs on mount
+  useEffect(() => {
+    fetchTagGroupsAndPVs();
+  }, []);
+
   // Convert activeFilters (by group name with tag names) to tagFilters (by group ID with tag IDs)
   const buildTagFilters = (
     filters: Record<string, string[]>,
@@ -140,7 +141,7 @@ function PVBrowser() {
       const formattedPVs = formatPVs(response.results, tagMap);
       setPVs(formattedPVs);
       setContinuationToken(response.continuationToken);
-      setHasMore(!!response.continuationToken); // Has more if there's a continuation token
+      setHasMore(!!response.continuationToken);
     } catch (err) {
       console.error('Failed to fetch PVs:', err);
       setError(err instanceof Error ? err.message : 'Failed to load PVs');
@@ -149,6 +150,18 @@ function PVBrowser() {
       setLoading(false);
     }
   };
+
+  // Handle search query changes with debouncing
+  useEffect(() => {
+    const delayTimer = setTimeout(() => {
+      // When search query changes, fetch new results
+      if (tagGroupMap.size > 0) {
+        fetchInitialPVs(tagGroupMap, searchQuery);
+      }
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(delayTimer);
+  }, [searchQuery, fetchInitialPVs, tagGroupMap]);
 
   const loadMorePVs = useCallback(async () => {
     if (!hasMore || isLoadingMore) return;
@@ -193,13 +206,14 @@ function PVBrowser() {
     try {
       setIsLoadingAll(true);
       let allPVs: PV[] = [];
-      let token: string | undefined = undefined;
+      let token: string | undefined;
       let pageCount = 0;
 
       const tagFilters = buildTagFilters(activeFilters, tagGroups);
 
       // Load all pages
       do {
+        // eslint-disable-next-line no-await-in-loop
         const response = await pvService.findPVsPaged({
           pvName: searchQuery,
           continuationToken: token,
@@ -210,7 +224,7 @@ function PVBrowser() {
         const formattedPVs = formatPVs(response.results, tagGroupMap);
         allPVs = [...allPVs, ...formattedPVs];
         token = response.continuationToken;
-        pageCount++;
+        pageCount += 1;
 
         console.log(
           `Loaded page ${pageCount}: ${response.results.length} PVs (total: ${allPVs.length})`
@@ -329,17 +343,16 @@ function PVBrowser() {
     try {
       // Fetch tag groups to map CSV tag names to IDs
       const summaries = await tagsService.findAllTagGroups();
-      const tagGroups = await Promise.all(
-        summaries.map(async (summary) => {
-          try {
-            const details = await tagsService.getTagGroupById(summary.id);
-            return details[0];
-          } catch (err) {
-            console.error(`Failed to fetch details for group ${summary.id}:`, err);
-            return null;
-          }
-        })
-      );
+      const tagGroupsPromises = summaries.map(async (summary) => {
+        try {
+          const details = await tagsService.getTagGroupById(summary.id);
+          return details[0];
+        } catch (err) {
+          console.error(`Failed to fetch details for group ${summary.id}:`, err);
+          return null;
+        }
+      });
+      const tagGroups = await Promise.all(tagGroupsPromises);
 
       const validTagGroups = tagGroups.filter((g): g is NonNullable<typeof g> => g !== null);
 
@@ -371,14 +384,15 @@ function PVBrowser() {
   };
 
   const handleDeletePV = async (pv: PV) => {
-    if (!confirm(`Delete PV ${pv.setpoint}?`)) return;
+    // eslint-disable-next-line no-alert
+    if (!window.confirm(`Delete PV ${pv.setpoint}?`)) return;
 
     try {
       await pvService.deletePV(pv.uuid);
       await fetchInitialPVs(tagGroupMap, searchQuery, activeFilters); // Refresh the list with current search
     } catch (err) {
       console.error('Failed to delete PV:', err);
-      alert('Failed to delete PV: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      alert(`Failed to delete PV: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
 

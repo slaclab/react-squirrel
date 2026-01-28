@@ -95,25 +95,30 @@ export function useServerFilters(debounceMs: number = 300): UseServerFiltersRetu
   }, []);
 
   const toggleAlarmFilter = useCallback(() => {
-    setFilters((prev) => ({
-      ...prev,
-      hasAlarm: prev.hasAlarm === null ? true : prev.hasAlarm ? false : null,
-    }));
+    setFilters((prev) => {
+      if (prev.hasAlarm === null) {
+        return { ...prev, hasAlarm: true };
+      }
+      if (prev.hasAlarm) {
+        return { ...prev, hasAlarm: false };
+      }
+      return { ...prev, hasAlarm: null };
+    });
   }, []);
 
   const clearFilters = useCallback(() => {
     setFilters(initialFilters);
   }, []);
 
-  const hasActiveFilters = useMemo(() => {
-    return (
+  const hasActiveFilters = useMemo(
+    () =>
       filters.searchTerm !== '' ||
       filters.devices.length > 0 ||
       filters.tags.length > 0 ||
       filters.severities.length > 0 ||
-      filters.hasAlarm !== null
-    );
-  }, [filters]);
+      filters.hasAlarm !== null,
+    [filters]
+  );
 
   return {
     filters,

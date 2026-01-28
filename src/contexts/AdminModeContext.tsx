@@ -8,7 +8,7 @@
  * When admin mode is enabled, configuration editing is allowed.
  */
 
-import { createContext, useContext, useState, ReactNode, useCallback } from 'react';
+import { createContext, useContext, useState, ReactNode, useCallback, useMemo } from 'react';
 
 interface AdminModeContextValue {
   /** Whether admin mode is currently enabled */
@@ -41,11 +41,12 @@ export function AdminModeProvider({ children }: AdminModeProviderProps) {
     setIsAdminMode(enabled);
   }, []);
 
-  return (
-    <AdminModeContext.Provider value={{ isAdminMode, toggleAdminMode, setAdminMode }}>
-      {children}
-    </AdminModeContext.Provider>
+  const contextValue = useMemo(
+    () => ({ isAdminMode, toggleAdminMode, setAdminMode }),
+    [isAdminMode, toggleAdminMode, setAdminMode]
   );
+
+  return <AdminModeContext.Provider value={contextValue}>{children}</AdminModeContext.Provider>;
 }
 
 /**

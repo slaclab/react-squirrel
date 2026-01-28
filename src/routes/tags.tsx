@@ -1,13 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { TagPage } from '../pages';
 import { tagsService } from '../services';
 import { useAdminMode } from '../contexts/AdminModeContext';
 import { TagGroup } from '../types';
-
-export const Route = createFileRoute('/tags')({
-  component: Tags,
-});
 
 function Tags() {
   const [tagGroups, setTagGroups] = useState<TagGroup[]>([]);
@@ -15,11 +11,7 @@ function Tags() {
   const [error, setError] = useState<string | null>(null);
   const { isAdminMode } = useAdminMode();
 
-  useEffect(() => {
-    fetchTagGroups();
-  }, []);
-
-  const fetchTagGroups = async () => {
+  const fetchTagGroups = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -31,14 +23,15 @@ function Tags() {
           try {
             const details = await tagsService.getTagGroupById(summary.id);
             // The API returns an array, but we only need the first element
-            const group = details[0];
+            const groupDetail = details[0];
             return {
-              id: group.id,
-              name: group.name,
-              description: group.description || '',
-              tags: group.tags,
+              id: groupDetail.id,
+              name: groupDetail.name,
+              description: groupDetail.description || '',
+              tags: groupDetail.tags,
             };
           } catch (err) {
+            // eslint-disable-next-line no-console
             console.error(`Failed to fetch details for group ${summary.id}:`, err);
             // Return basic info if detailed fetch fails
             return {
@@ -53,21 +46,28 @@ function Tags() {
 
       setTagGroups(detailedGroups);
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error('Failed to fetch tag groups:', err);
       setError(err instanceof Error ? err.message : 'Failed to load tag groups');
       setTagGroups([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchTagGroups();
+  }, [fetchTagGroups]);
 
   const handleAddGroup = async (name: string, description: string) => {
     try {
       await tagsService.createTagGroup({ name, description });
       await fetchTagGroups(); // Refresh the list
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error('Failed to add tag group:', err);
-      alert('Failed to add tag group: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      // eslint-disable-next-line no-alert
+      alert(`Failed to add tag group: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
 
@@ -76,22 +76,25 @@ function Tags() {
       await tagsService.updateTagGroup(id, { name, description });
       await fetchTagGroups(); // Refresh the list
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error('Failed to edit tag group:', err);
-      alert('Failed to edit tag group: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      // eslint-disable-next-line no-alert
+      alert(`Failed to edit tag group: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
 
   const handleDeleteGroup = async (id: string) => {
+    // eslint-disable-next-line no-alert, no-restricted-globals
     if (!confirm('Delete this tag group?')) return;
 
     try {
       await tagsService.deleteTagGroup(id);
       await fetchTagGroups(); // Refresh the list
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error('Failed to delete tag group:', err);
-      alert(
-        'Failed to delete tag group: ' + (err instanceof Error ? err.message : 'Unknown error')
-      );
+      // eslint-disable-next-line no-alert
+      alert(`Failed to delete tag group: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
 
@@ -105,18 +108,19 @@ function Tags() {
 
       // Update local state for this specific group
       setTagGroups((prevGroups) =>
-        prevGroups.map((group) =>
-          group.id === groupId
+        prevGroups.map((g) =>
+          g.id === groupId
             ? {
                 id: updatedGroup.id,
                 name: updatedGroup.name,
                 description: updatedGroup.description || '',
                 tags: updatedGroup.tags,
               }
-            : group
+            : g
         )
       );
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error('Failed to add tag:', err);
       throw err; // Re-throw to let the UI handle it
     }
@@ -130,37 +134,38 @@ function Tags() {
   ) => {
     try {
       // Find the tag ID from the tag name
-      const group = tagGroups.find((g) => g.id === groupId);
-      if (!group || !group.tags) {
+      const foundGroup = tagGroups.find((g) => g.id === groupId);
+      if (!foundGroup || !foundGroup.tags) {
         throw new Error('Tag group not found');
       }
 
-      const tag = group.tags.find((t) => t.name === tagName);
-      if (!tag) {
+      const foundTag = foundGroup.tags.find((t) => t.name === tagName);
+      if (!foundTag) {
         throw new Error('Tag not found');
       }
 
-      await tagsService.updateTagInGroup(groupId, tag.id, {
+      await tagsService.updateTagInGroup(groupId, foundTag.id, {
         name: newTagName,
         description: newTagDescription,
       });
 
       // Update local state for this specific group
       setTagGroups((prevGroups) =>
-        prevGroups.map((group) =>
-          group.id === groupId
+        prevGroups.map((g) =>
+          g.id === groupId
             ? {
-                ...group,
-                tags: group.tags.map((tag) =>
-                  tag.name === tagName
-                    ? { ...tag, name: newTagName, description: newTagDescription }
-                    : tag
+                ...g,
+                tags: g.tags.map((t) =>
+                  t.name === tagName
+                    ? { ...t, name: newTagName, description: newTagDescription }
+                    : t
                 ),
               }
-            : group
+            : g
         )
       );
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error('Failed to edit tag:', err);
       throw err;
     }
@@ -169,19 +174,20 @@ function Tags() {
   const handleDeleteTag = async (groupId: string, tagName: string) => {
     try {
       // Find the tag ID from the tag name
-      const group = tagGroups.find((g) => g.id === groupId);
-      if (!group || !group.tags) {
+      const foundGroup = tagGroups.find((g) => g.id === groupId);
+      if (!foundGroup || !foundGroup.tags) {
         throw new Error('Tag group not found');
       }
 
-      const tag = group.tags.find((t) => t.name === tagName);
-      if (!tag) {
+      const foundTag = foundGroup.tags.find((t) => t.name === tagName);
+      if (!foundTag) {
         throw new Error('Tag not found');
       }
 
-      await tagsService.removeTagFromGroup(groupId, tag.id);
+      await tagsService.removeTagFromGroup(groupId, foundTag.id);
       await fetchTagGroups(); // Refresh the list
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error('Failed to delete tag:', err);
       throw err; // Re-throw to let the UI handle it
     }
@@ -208,3 +214,7 @@ function Tags() {
     />
   );
 }
+
+export const Route = createFileRoute('/tags')({
+  component: Tags,
+});

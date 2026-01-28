@@ -92,18 +92,9 @@ interface SearchParams {
   compId?: string;
 }
 
-export const Route = createFileRoute('/comparison')({
-  validateSearch: (search: Record<string, unknown>): SearchParams => {
-    return {
-      mainId: search.mainId as string | undefined,
-      compId: search.compId as string | undefined,
-    };
-  },
-  component: Comparison,
-});
-
 function Comparison() {
   const navigate = useNavigate();
+  // eslint-disable-next-line @typescript-eslint/no-use-before-define
   const { mainId, compId } = Route.useSearch();
 
   // Fetch both snapshots
@@ -175,6 +166,16 @@ function Comparison() {
     );
   }
 
+  const getErrorMessage = () => {
+    if (errorMain instanceof Error) {
+      return errorMain.message;
+    }
+    if (errorComp instanceof Error) {
+      return errorComp.message;
+    }
+    return 'Failed to load snapshots';
+  };
+
   if (errorMain || errorComp || !mainSnapshot || !comparisonSnapshot) {
     return (
       <Box
@@ -188,11 +189,7 @@ function Comparison() {
         }}
       >
         <Typography variant="h6" color="error" gutterBottom>
-          {errorMain instanceof Error
-            ? errorMain.message
-            : errorComp instanceof Error
-              ? errorComp.message
-              : 'Failed to load snapshots'}
+          {getErrorMessage()}
         </Typography>
         <Button variant="contained" onClick={handleBack}>
           Back
@@ -209,3 +206,11 @@ function Comparison() {
     />
   );
 }
+
+export const Route = createFileRoute('/comparison')({
+  validateSearch: (search: Record<string, unknown>): SearchParams => ({
+    mainId: search.mainId as string | undefined,
+    compId: search.compId as string | undefined,
+  }),
+  component: Comparison,
+});

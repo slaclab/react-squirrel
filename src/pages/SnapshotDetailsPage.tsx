@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Stack,
@@ -36,12 +36,12 @@ interface SnapshotDetailsPageProps {
   onCompare?: (comparisonSnapshotId: string) => void;
 }
 
-export const SnapshotDetailsPage: React.FC<SnapshotDetailsPageProps> = ({
+export function SnapshotDetailsPage({
   snapshot,
   onBack,
   onRestore,
   onCompare,
-}) => {
+}: SnapshotDetailsPageProps) {
   const [searchText, setSearchText] = useState('');
   const [selectedPVs, setSelectedPVs] = useState<PV[]>([]);
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
@@ -62,11 +62,11 @@ export const SnapshotDetailsPage: React.FC<SnapshotDetailsPageProps> = ({
           summaries.map(async (summary) => {
             try {
               const details = await tagsService.getTagGroupById(summary.id);
-              const group = details[0];
+              const groupDetail = details[0];
               return {
-                id: group.id,
-                name: group.name,
-                tags: group.tags,
+                id: groupDetail.id,
+                name: groupDetail.name,
+                tags: groupDetail.tags,
               };
             } catch (err) {
               console.error(`Failed to fetch details for group ${summary.id}:`, err);
@@ -118,9 +118,10 @@ export const SnapshotDetailsPage: React.FC<SnapshotDetailsPageProps> = ({
   );
 
   // Get PVs that will be restored
-  const pvsToRestore = useMemo(() => {
-    return selectedPVs.length > 0 ? selectedPVs : snapshot?.pvs || [];
-  }, [selectedPVs, snapshot?.pvs]);
+  const pvsToRestore = useMemo(
+    () => (selectedPVs.length > 0 ? selectedPVs : snapshot?.pvs || []),
+    [selectedPVs, snapshot?.pvs]
+  );
 
   const clearFilters = () => {
     setActiveFilters({});
@@ -179,6 +180,46 @@ export const SnapshotDetailsPage: React.FC<SnapshotDetailsPageProps> = ({
     );
   }
 
+  const getRestoreDialogTitle = () => {
+    if (selectedPVs.length === 0) {
+      return `Restore all ${pvsToRestore.length} PVs?`;
+    }
+    return `Restore ${selectedPVs.length} selected PV${selectedPVs.length > 1 ? 's' : ''}?`;
+  };
+
+  const getCompareDialogContent = () => {
+    if (loadingSnapshots) {
+      return (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+          <CircularProgress />
+        </Box>
+      );
+    }
+    if (availableSnapshots.length === 0) {
+      return (
+        <Typography color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
+          No other snapshots available for comparison
+        </Typography>
+      );
+    }
+    return (
+      <List sx={{ pt: 0 }}>
+        {availableSnapshots.map((snap) => (
+          <ListItem key={snap.id} disablePadding>
+            <ListItemButton onClick={() => handleSelectComparisonSnapshot(snap.id)}>
+              <MuiListItemText
+                primary={snap.title}
+                secondary={`${new Date(snap.createdDate).toLocaleString()} • ${
+                  snap.pvCount || 0
+                } PVs`}
+              />
+            </ListItemButton>
+          </ListItem>
+        ))}
+      </List>
+    );
+  };
+
   return (
     <Box
       sx={{
@@ -226,14 +267,21 @@ export const SnapshotDetailsPage: React.FC<SnapshotDetailsPageProps> = ({
 
           {hasActiveFilters && (
             <>
-              <Link
-                component="button"
-                variant="body2"
+              <Button
+                variant="text"
                 onClick={clearFilters}
-                sx={{ ml: 1, cursor: 'pointer', textDecoration: 'none', color: 'primary.main' }}
+                sx={{
+                  ml: 1,
+                  textTransform: 'none',
+                  textDecoration: 'none',
+                  color: 'primary.main',
+                  '&:hover': {
+                    textDecoration: 'underline',
+                  },
+                }}
               >
                 x Clear Filters
-              </Link>
+              </Button>
               <Typography
                 variant="caption"
                 color="text.secondary"
@@ -259,11 +307,7 @@ export const SnapshotDetailsPage: React.FC<SnapshotDetailsPageProps> = ({
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle>
-          {selectedPVs.length === 0
-            ? `Restore all ${pvsToRestore.length} PVs?`
-            : `Restore ${selectedPVs.length} selected PV${selectedPVs.length > 1 ? 's' : ''}?`}
-        </DialogTitle>
+        <DialogTitle>{getRestoreDialogTitle()}</DialogTitle>
         <DialogContent dividers sx={{ p: 0, maxHeight: 400, overflow: 'auto' }}>
           {/* Table Header */}
           <Box
@@ -343,34 +387,11 @@ export const SnapshotDetailsPage: React.FC<SnapshotDetailsPageProps> = ({
         fullWidth
       >
         <DialogTitle>Select Snapshot to Compare</DialogTitle>
-        <DialogContent dividers>
-          {loadingSnapshots ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-              <CircularProgress />
-            </Box>
-          ) : availableSnapshots.length === 0 ? (
-            <Typography color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
-              No other snapshots available for comparison
-            </Typography>
-          ) : (
-            <List sx={{ pt: 0 }}>
-              {availableSnapshots.map((snap) => (
-                <ListItem key={snap.id} disablePadding>
-                  <ListItemButton onClick={() => handleSelectComparisonSnapshot(snap.id)}>
-                    <MuiListItemText
-                      primary={snap.title}
-                      secondary={`${new Date(snap.createdDate).toLocaleString()} • ${snap.pvCount || 0} PVs`}
-                    />
-                  </ListItemButton>
-                </ListItem>
-              ))}
-            </List>
-          )}
-        </DialogContent>
+        <DialogContent dividers>{getCompareDialogContent()}</DialogContent>
         <DialogActions>
           <Button onClick={() => setShowCompareDialog(false)}>Cancel</Button>
         </DialogActions>
       </Dialog>
     </Box>
   );
-};
+}

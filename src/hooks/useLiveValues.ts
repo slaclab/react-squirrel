@@ -49,7 +49,7 @@ export function useLiveValues({
         // We were subscribed, now need to unsubscribe
         subscribedRef.current = false;
       }
-      return;
+      return undefined;
     }
 
     if (!subscribedRef.current) {
@@ -66,8 +66,7 @@ export function useLiveValues({
       }
     };
     // Only re-run when the key changes (meaning actual PV list changed) or enabled changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pvNamesKey, enabled]);
+  }, [pvNamesKey, enabled, subscribeToPVs, unsubscribeFromPVs]);
 
   // Filter liveValues to only include subscribed PVs
   const filteredValues = useMemo(() => {

@@ -20,109 +20,6 @@ export interface ParsedCSVResult {
 }
 
 /**
- * Parse CSV file content into PV data structure
- *
- * CSV Format (matches Python parse_csv_to_dict):
- * - Required columns: "Setpoint" or "Readback" (at least one)
- * - Optional columns: "Device", "Description"
- * - Any additional columns are treated as tag groups
- * - Tag values can be comma-separated (e.g., "tag1, tag2")
- * - Filters out 'nan' and 'none' values
- *
- * @param csvContent - Raw CSV file content as string
- * @returns Parsed PV data with tag groups and any errors
- */
-export function parseCSVToPVs(csvContent: string): ParsedCSVResult {
-  const errors: string[] = [];
-  const data: ParsedCSVRow[] = [];
-
-  // Split into lines and filter empty lines
-  const lines = csvContent.split(/\r?\n/).filter(line => line.trim());
-
-  if (lines.length === 0) {
-    errors.push('CSV file is empty');
-    return { data, groupColumns: [], errors };
-  }
-
-  // Parse header row
-  const rawHeaders = parseCSVLine(lines[0]);
-  const cleanedHeaders = rawHeaders.map(h => h.trim()).filter(h => h);
-
-  if (cleanedHeaders.length === 0) {
-    errors.push('CSV header row is empty');
-    return { data, groupColumns: [], errors };
-  }
-
-  // Validate required columns
-  if (!cleanedHeaders.includes('Setpoint') && !cleanedHeaders.includes('Readback')) {
-    errors.push('Header missing required columns "Setpoint" or "Readback"');
-    return { data, groupColumns: [], errors };
-  }
-
-  // Identify tag group columns (any column that's not a standard field)
-  const standardColumns = ['Setpoint', 'Readback', 'Device', 'Description'];
-  const groupColumns = cleanedHeaders.filter(col => !standardColumns.includes(col));
-
-  // Parse data rows (starting from row 2 in 1-indexed terms, row 1 in 0-indexed)
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line) continue;
-
-    const values = parseCSVLine(line);
-
-    // Create a row dictionary
-    const rowDict: Record<string, string> = {};
-    cleanedHeaders.forEach((header, index) => {
-      rowDict[header] = index < values.length ? values[index].trim() : '';
-    });
-
-    const setpoint = rowDict['Setpoint'] || '';
-    const readback = rowDict['Readback'] || '';
-
-    // Skip row if both setpoint and readback are empty
-    if (!setpoint && !readback) {
-      continue;
-    }
-
-    const device = rowDict['Device'] || '';
-    const description = rowDict['Description'] || '';
-
-    // Parse tag groups
-    const groups: Record<string, string[]> = {};
-
-    groupColumns.forEach(groupName => {
-      const cellValue = rowDict[groupName] || '';
-      const trimmedValue = cellValue.trim();
-
-      if (trimmedValue && trimmedValue.toLowerCase() !== 'nan' && trimmedValue.toLowerCase() !== 'none') {
-        // Split comma-separated values and filter
-        const values = trimmedValue
-          .split(',')
-          .map(val => val.trim())
-          .filter(val => val);
-        groups[groupName] = values;
-      } else {
-        groups[groupName] = [];
-      }
-    });
-
-    data.push({
-      Setpoint: setpoint,
-      Readback: readback,
-      Device: device,
-      Description: description,
-      groups,
-    });
-  }
-
-  return {
-    data,
-    groupColumns,
-    errors,
-  };
-}
-
-/**
  * Parse a single CSV line, handling quoted fields
  * Simple CSV parser that handles basic quoting
  */
@@ -131,7 +28,7 @@ function parseCSVLine(line: string): string[] {
   let current = '';
   let inQuotes = false;
 
-  for (let i = 0; i < line.length; i++) {
+  for (let i = 0; i < line.length; i += 1) {
     const char = line[i];
     const nextChar = i + 1 < line.length ? line[i + 1] : '';
 
@@ -139,7 +36,7 @@ function parseCSVLine(line: string): string[] {
       if (inQuotes && nextChar === '"') {
         // Escaped quote
         current += '"';
-        i++; // Skip next quote
+        i += 1; // Skip next quote
       } else {
         // Toggle quote state
         inQuotes = !inQuotes;
@@ -157,6 +54,111 @@ function parseCSVLine(line: string): string[] {
   result.push(current);
 
   return result;
+}
+
+/**
+ * Parse CSV file content into PV data structure
+ *
+ * CSV Format (matches Python parse_csv_to_dict):
+ * - Required columns: "Setpoint" or "Readback" (at least one)
+ * - Optional columns: "Device", "Description"
+ * - Any additional columns are treated as tag groups
+ * - Tag values can be comma-separated (e.g., "tag1, tag2")
+ * - Filters out 'nan' and 'none' values
+ *
+ * @param csvContent - Raw CSV file content as string
+ * @returns Parsed PV data with tag groups and any errors
+ */
+export function parseCSVToPVs(csvContent: string): ParsedCSVResult {
+  const errors: string[] = [];
+  const data: ParsedCSVRow[] = [];
+
+  // Split into lines and filter empty lines
+  const lines = csvContent.split(/\r?\n/).filter((line) => line.trim());
+
+  if (lines.length === 0) {
+    errors.push('CSV file is empty');
+    return { data, groupColumns: [], errors };
+  }
+
+  // Parse header row
+  const rawHeaders = parseCSVLine(lines[0]);
+  const cleanedHeaders = rawHeaders.map((h) => h.trim()).filter((h) => h);
+
+  if (cleanedHeaders.length === 0) {
+    errors.push('CSV header row is empty');
+    return { data, groupColumns: [], errors };
+  }
+
+  // Validate required columns
+  if (!cleanedHeaders.includes('Setpoint') && !cleanedHeaders.includes('Readback')) {
+    errors.push('Header missing required columns "Setpoint" or "Readback"');
+    return { data, groupColumns: [], errors };
+  }
+
+  // Identify tag group columns (any column that's not a standard field)
+  const standardColumns = ['Setpoint', 'Readback', 'Device', 'Description'];
+  const groupColumns = cleanedHeaders.filter((col) => !standardColumns.includes(col));
+
+  // Parse data rows (starting from row 2 in 1-indexed terms, row 1 in 0-indexed)
+  for (let i = 1; i < lines.length; i += 1) {
+    const line = lines[i].trim();
+    if (line) {
+      const rowValues = parseCSVLine(line);
+
+      // Create a row dictionary
+      const rowDict: Record<string, string> = {};
+      cleanedHeaders.forEach((header, index) => {
+        rowDict[header] = index < rowValues.length ? rowValues[index].trim() : '';
+      });
+
+      const setpoint = rowDict.Setpoint || '';
+      const readback = rowDict.Readback || '';
+
+      // Only process row if at least one of setpoint or readback is present
+      if (setpoint || readback) {
+        const device = rowDict.Device || '';
+        const description = rowDict.Description || '';
+
+        // Parse tag groups
+        const groups: Record<string, string[]> = {};
+
+        groupColumns.forEach((groupName) => {
+          const cellValue = rowDict[groupName] || '';
+          const trimmedValue = cellValue.trim();
+
+          if (
+            trimmedValue &&
+            trimmedValue.toLowerCase() !== 'nan' &&
+            trimmedValue.toLowerCase() !== 'none'
+          ) {
+            // Split comma-separated values and filter
+            const tagValues = trimmedValue
+              .split(',')
+              .map((val) => val.trim())
+              .filter((val) => val);
+            groups[groupName] = tagValues;
+          } else {
+            groups[groupName] = [];
+          }
+        });
+
+        data.push({
+          Setpoint: setpoint,
+          Readback: readback,
+          Device: device,
+          Description: description,
+          groups,
+        });
+      }
+    }
+  }
+
+  return {
+    data,
+    groupColumns,
+    errors,
+  };
 }
 
 /**
@@ -186,7 +188,7 @@ export function createTagMapping(
   // Process each CSV group
   Object.entries(csvGroups).forEach(([groupName, csvValues]) => {
     // Find matching tag group in backend
-    const matchingGroup = availableTagGroups.find(g => g.name === groupName);
+    const matchingGroup = availableTagGroups.find((g) => g.name === groupName);
 
     if (!matchingGroup) {
       // Group doesn't exist in backend
@@ -198,8 +200,8 @@ export function createTagMapping(
     const rejectedValuesForGroup: string[] = [];
 
     // For each CSV value, try to find matching tag in backend
-    csvValues.forEach(csvValue => {
-      const matchingTag = matchingGroup.tags.find(t => t.name === csvValue);
+    csvValues.forEach((csvValue) => {
+      const matchingTag = matchingGroup.tags.find((t) => t.name === csvValue);
 
       if (matchingTag) {
         groupTagIds.push(matchingTag.id);
@@ -248,7 +250,5 @@ export function createValidationSummary(
     summaryParts.push(`Rejected values: ${valueParts.join(' | ')}`);
   }
 
-  return summaryParts.length > 0
-    ? summaryParts.join(' • ')
-    : 'All groups and values are valid';
+  return summaryParts.length > 0 ? summaryParts.join(' • ') : 'All groups and values are valid';
 }

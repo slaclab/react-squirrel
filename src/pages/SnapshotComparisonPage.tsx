@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback, useRef, memo } from 'react';
 import { Box, Stack, IconButton, Typography, Button, Checkbox, Paper } from '@mui/material';
 import { ArrowBack, Close, CheckCircle, Warning, Error as ErrorIcon } from '@mui/icons-material';
 import { useVirtualizer } from '@tanstack/react-virtual';
@@ -26,7 +26,7 @@ const formatValue = (value: AnyEpicsType | undefined): string => {
   return String(value);
 };
 
-const SeverityIcon = React.memo(({ severity }: { severity?: Severity }) => {
+const SeverityIcon = memo(({ severity }: { severity?: Severity }) => {
   switch (severity) {
     case Severity.NO_ALARM:
       return <CheckCircle fontSize="small" sx={{ color: 'success.main' }} />;
@@ -58,16 +58,16 @@ const TOTAL_WIDTH =
   COL_WIDTHS.pvName +
   COL_WIDTHS.value * 4;
 
-export const SnapshotComparisonPage: React.FC<SnapshotComparisonPageProps> = ({
+export function SnapshotComparisonPage({
   mainSnapshot,
   comparisonSnapshot,
   onBack,
-}) => {
+}: SnapshotComparisonPageProps) {
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const parentRef = useRef<HTMLDivElement>(null);
 
-  const formatTimestamp = (date: Date) => {
-    return date.toLocaleString('en-US', {
+  const formatTimestamp = (date: Date) =>
+    date.toLocaleString('en-US', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -76,7 +76,6 @@ export const SnapshotComparisonPage: React.FC<SnapshotComparisonPageProps> = ({
       second: '2-digit',
       hour12: false,
     });
-  };
 
   // Build comparison data - match PVs by uuid (pv_id)
   const comparisonData = useMemo(() => {
@@ -129,9 +128,8 @@ export const SnapshotComparisonPage: React.FC<SnapshotComparisonPageProps> = ({
     setSelectedRows((prev) => {
       if (prev.size === comparisonData.length) {
         return new Set();
-      } else {
-        return new Set(comparisonData.map((row) => row.pv.uuid));
       }
+      return new Set(comparisonData.map((row) => row.pv.uuid));
     });
   }, [comparisonData]);
 
@@ -431,4 +429,4 @@ export const SnapshotComparisonPage: React.FC<SnapshotComparisonPageProps> = ({
       </Paper>
     </Box>
   );
-};
+}

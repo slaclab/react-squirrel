@@ -110,16 +110,14 @@ export function useBufferedLiveData({
         wsRef.current.close();
         wsRef.current = null;
       }
-      return;
+      return undefined;
     }
 
     const connect = () => {
-      console.log('[BufferedLiveData] Connecting to', effectiveWsUrl);
       const ws = new WebSocket(effectiveWsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log('[BufferedLiveData] Connected');
         setIsConnected(true);
         reconnectAttempts.current = 0;
 
@@ -148,35 +146,26 @@ export function useBufferedLiveData({
               updateBuffer.current.set(pvName, value as PVUpdate);
             });
             setPendingUpdates(updateBuffer.current.size);
-          } else if (message.type === 'heartbeat') {
-            // Backend heartbeat - just keep connection alive
-            console.debug('[BufferedLiveData] Heartbeat received');
-          } else if (message.type === 'error') {
-            console.error('[BufferedLiveData] Server error:', message.message);
           }
-        } catch (err) {
-          console.error('[BufferedLiveData] Failed to parse message:', err);
+          // Silently handle heartbeat and error messages
+        } catch {
+          // Silently ignore parse errors
         }
       };
 
-      ws.onclose = (event) => {
-        console.log('[BufferedLiveData] Disconnected:', event.code, event.reason);
+      ws.onclose = () => {
         setIsConnected(false);
         wsRef.current = null;
 
         // Reconnect with exponential backoff
         if (enabled) {
-          const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
-          reconnectAttempts.current++;
-          console.log(
-            `[BufferedLiveData] Reconnecting in ${delay}ms (attempt ${reconnectAttempts.current})`
-          );
+          const delay = Math.min(1000 * 2 ** reconnectAttempts.current, 30000);
+          reconnectAttempts.current += 1;
           reconnectTimeoutRef.current = window.setTimeout(connect, delay);
         }
       };
 
-      ws.onerror = (error) => {
-        console.error('[BufferedLiveData] WebSocket error:', error);
+      ws.onerror = () => {
         ws.close();
       };
     };
@@ -184,7 +173,6 @@ export function useBufferedLiveData({
     connect();
 
     return () => {
-      console.log('[BufferedLiveData] Cleaning up');
       if (wsRef.current) {
         wsRef.current.close();
         wsRef.current = null;
@@ -198,7 +186,7 @@ export function useBufferedLiveData({
 
   // The "Game Loop" - flush buffer at regular intervals
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled) return undefined;
 
     const interval = setInterval(flush, flushIntervalMs);
     return () => clearInterval(interval);
@@ -208,7 +196,6 @@ export function useBufferedLiveData({
   useEffect(() => {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
 
-    console.log('[BufferedLiveData] Updating subscriptions:', pvNames.length);
     wsRef.current.send(
       JSON.stringify({
         type: 'subscribe',

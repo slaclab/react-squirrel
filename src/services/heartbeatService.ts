@@ -15,7 +15,9 @@ interface HeartbeatState {
 
 class HeartbeatService {
   private pollInterval: number | null = null;
+
   private callbacks: Set<HeartbeatCallback> = new Set();
+
   private lastKnownState: HeartbeatState = {
     alive: true,
     age: null,

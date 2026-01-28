@@ -1,4 +1,12 @@
-import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useRef,
+  ReactNode,
+  useMemo,
+} from 'react';
 import { snapshotService, jobService } from '../services';
 
 export interface SnapshotProgress {
@@ -29,7 +37,11 @@ const POLL_INTERVAL_MS = 1000; // Poll every second
 
 const SnapshotContext = createContext<SnapshotContextType | undefined>(undefined);
 
-export const SnapshotProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+interface SnapshotProviderProps {
+  children: ReactNode;
+}
+
+export function SnapshotProvider({ children }: SnapshotProviderProps) {
   const [snapshotProgress, setSnapshotProgress] = useState<SnapshotProgress>(initialProgress);
   const pollIntervalRef = useRef<number | null>(null);
 
@@ -40,116 +52,119 @@ export const SnapshotProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, []);
 
-  const pollJobStatus = useCallback((jobId: string, title: string) => {
-    const poll = async () => {
-      try {
-        const job = await jobService.getJobStatus(jobId);
-        console.log('Job status:', job);
+  const pollJobStatus = useCallback(
+    (jobId: string, title: string) => {
+      const poll = async () => {
+        try {
+          const job = await jobService.getJobStatus(jobId);
 
-        if (job.status === 'completed') {
-          stopPolling();
-          setSnapshotProgress({
-            isCreating: false,
-            title,
-            progress: 100,
-            error: null,
-            snapshotId: job.resultId || null,
-            message: job.message || 'Snapshot created successfully',
-          });
-        } else if (job.status === 'failed') {
+          if (job.status === 'completed') {
+            stopPolling();
+            setSnapshotProgress({
+              isCreating: false,
+              title,
+              progress: 100,
+              error: null,
+              snapshotId: job.resultId || null,
+              message: job.message || 'Snapshot created successfully',
+            });
+          } else if (job.status === 'failed') {
+            stopPolling();
+            setSnapshotProgress({
+              isCreating: false,
+              title,
+              progress: null,
+              error: job.error || 'Snapshot creation failed',
+              snapshotId: null,
+              message: null,
+            });
+          } else {
+            // Still running or pending
+            setSnapshotProgress({
+              isCreating: true,
+              title,
+              progress: job.progress,
+              error: null,
+              snapshotId: null,
+              message: job.message || 'Creating snapshot...',
+            });
+          }
+        } catch (err) {
           stopPolling();
           setSnapshotProgress({
             isCreating: false,
             title,
             progress: null,
-            error: job.error || 'Snapshot creation failed',
+            error: err instanceof Error ? err.message : 'Failed to check job status',
             snapshotId: null,
             message: null,
           });
-        } else {
-          // Still running or pending
-          setSnapshotProgress({
-            isCreating: true,
-            title,
-            progress: job.progress,
-            error: null,
-            snapshotId: null,
-            message: job.message || 'Creating snapshot...',
-          });
         }
-      } catch (err) {
-        console.error('Failed to poll job status:', err);
-        stopPolling();
-        setSnapshotProgress({
-          isCreating: false,
-          title,
-          progress: null,
-          error: err instanceof Error ? err.message : 'Failed to check job status',
-          snapshotId: null,
-          message: null,
-        });
-      }
-    };
+      };
 
-    // Start polling
-    poll(); // Initial poll
-    pollIntervalRef.current = window.setInterval(poll, POLL_INTERVAL_MS);
-  }, [stopPolling]);
+      // Start polling
+      poll(); // Initial poll
+      pollIntervalRef.current = window.setInterval(poll, POLL_INTERVAL_MS);
+    },
+    [stopPolling]
+  );
 
-  const startSnapshot = useCallback((title: string, comment?: string) => {
-    // Stop any existing polling
-    stopPolling();
+  const startSnapshot = useCallback(
+    (title: string, comment?: string) => {
+      // Stop any existing polling
+      stopPolling();
 
-    // Set initial state - creating, no progress yet
-    setSnapshotProgress({
-      isCreating: true,
-      title,
-      progress: null,
-      error: null,
-      snapshotId: null,
-      message: 'Starting snapshot...',
-    });
-
-    // Fire off the async request
-    snapshotService
-      .createSnapshotAsync({
+      // Set initial state - creating, no progress yet
+      setSnapshotProgress({
+        isCreating: true,
         title,
-        comment: comment || undefined,
-      })
-      .then((result) => {
-        console.log('Snapshot job started:', result);
-        // Start polling for job status
-        pollJobStatus(result.jobId, title);
-      })
-      .catch((err) => {
-        console.error('Failed to start snapshot:', err);
-        setSnapshotProgress({
-          isCreating: false,
-          title,
-          progress: null,
-          error: err instanceof Error ? err.message : 'Failed to start snapshot',
-          snapshotId: null,
-          message: null,
-        });
+        progress: null,
+        error: null,
+        snapshotId: null,
+        message: 'Starting snapshot...',
       });
-  }, [pollJobStatus, stopPolling]);
+
+      // Fire off the async request
+      snapshotService
+        .createSnapshotAsync({
+          title,
+          comment: comment || undefined,
+        })
+        .then((result) => {
+          // Start polling for job status
+          pollJobStatus(result.jobId, title);
+        })
+        .catch((err) => {
+          setSnapshotProgress({
+            isCreating: false,
+            title,
+            progress: null,
+            error: err instanceof Error ? err.message : 'Failed to start snapshot',
+            snapshotId: null,
+            message: null,
+          });
+        });
+    },
+    [pollJobStatus, stopPolling]
+  );
 
   const clearSnapshot = useCallback(() => {
     stopPolling();
     setSnapshotProgress(initialProgress);
   }, [stopPolling]);
 
-  return (
-    <SnapshotContext.Provider value={{ snapshotProgress, startSnapshot, clearSnapshot }}>
-      {children}
-    </SnapshotContext.Provider>
+  const contextValue = useMemo(
+    () => ({ snapshotProgress, startSnapshot, clearSnapshot }),
+    [snapshotProgress, startSnapshot, clearSnapshot]
   );
-};
 
-export const useSnapshot = (): SnapshotContextType => {
+  return <SnapshotContext.Provider value={contextValue}>{children}</SnapshotContext.Provider>;
+}
+
+export function useSnapshot(): SnapshotContextType {
   const context = useContext(SnapshotContext);
   if (!context) {
     throw new Error('useSnapshot must be used within a SnapshotProvider');
   }
   return context;
-};
+}

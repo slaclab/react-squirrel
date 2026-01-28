@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { ReactNode, useState } from 'react';
 import { Box, AppBar, Toolbar, IconButton, Tooltip } from '@mui/material';
 import {
   Help as HelpIcon,
@@ -12,10 +12,10 @@ import { LiveDataWarningBanner } from './LiveDataWarningBanner';
 import { useAdminMode } from '../contexts/AdminModeContext';
 
 interface LayoutProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
-export const Layout: React.FC<LayoutProps> = ({ children }) => {
+export function Layout({ children }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [snapshotDialogOpen, setSnapshotDialogOpen] = useState(false);
   const { isAdminMode, toggleAdminMode } = useAdminMode();
@@ -116,4 +116,4 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       </Box>
     </Box>
   );
-};
+}

@@ -23,8 +23,10 @@ import {
   ListItem,
   ListItemText,
   ListItemSecondaryAction,
+  ListItemIcon,
+  Tooltip,
 } from '@mui/material';
-import { Add, Delete, Edit, NoteOutlined } from '@mui/icons-material';
+import { Add, Delete, Edit, NewReleasesOutlined, NoteOutlined } from '@mui/icons-material';
 import { TagGroup, Tag } from '../types';
 import { PendingTagGroupChanges } from '../routes/tags';
 
@@ -141,11 +143,17 @@ export const TagPage: React.FC<TagPageProps> = ({
     }
   };
 
-  function draftIsEmpty(draft: PendingTagGroupChanges | null): boolean {
+  function draftHasNoTags(draft: PendingTagGroupChanges | null): boolean {
     if (!draft) return true;
     if (draft.tagsToAdd.length > 0) return false;
     if (draft.tagsToEdit.size > 0) return false;
     if (draft.tagsToDelete.size > 0) return false;
+    return true;
+  }
+
+  function draftIsEmpty(draft: PendingTagGroupChanges | null): boolean {
+    if (!draft) return true;
+    if (!draftHasNoTags(draft)) return false;
     if (draft.groupChanges?.name !== selectedGroup?.name) return false;
     if (draft.groupChanges?.description !== selectedGroup?.description) return false;
     return true;
@@ -172,6 +180,52 @@ export const TagPage: React.FC<TagPageProps> = ({
     }
 
     return false;
+  };
+
+  const isTagInDraft = (tag: Tag): boolean => {
+    if (!draft) return false;
+
+    // Check if being added (tags without ID)
+    if (!tag.id && draft.tagsToAdd.some((t) => t.name === tag.name)) {
+      return true;
+    }
+
+    // Check if being edited or deleted
+    if (tag.id) {
+      if (draft.tagsToEdit.has(tag.id) || draft.tagsToDelete.has(tag.id)) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
+  const getDisplayTags = (): Tag[] => {
+    if (!selectedGroup || !draft) return selectedGroup?.tags || [];
+
+    // Start with original tags, excluding deleted ones, and apply edits
+    const displayTags = selectedGroup.tags
+      .filter((tag) => !draft.tagsToDelete.has(tag.id || ''))
+      .map((tag) => {
+        if (tag.id && draft.tagsToEdit.has(tag.id)) {
+          const edits = draft.tagsToEdit.get(tag.id)!;
+          return {
+            ...tag,
+            name: edits.name,
+            description: edits.description,
+          };
+        }
+        return tag;
+      });
+
+    // Add new tags (with temporary display data)
+    const newTags = draft.tagsToAdd.map((t) => ({
+      id: undefined as any,
+      name: t.name,
+      description: t.description,
+    }));
+
+    return [...displayTags, ...newTags];
   };
 
   const handleAddNewTag = async () => {
@@ -224,21 +278,32 @@ export const TagPage: React.FC<TagPageProps> = ({
       }
     }
 
-    if (draft?.tagsToDelete.has(tag.id)) {
-      draft.tagsToDelete.delete(tag.id);
-    }
+    setDraft((prev) => {
+      if (!prev) return null;
 
-    setDraft((prev) =>
-      prev
-        ? {
-            ...prev,
-            tagsToEdit: new Map(prev.tagsToEdit).set(tag.id!, {
-              name: tagName,
-              description: tagDescription,
-            }),
-          }
-        : null
-    );
+      const newDeleteSet = new Set(prev.tagsToDelete);
+      if (newDeleteSet.has(tag.id!)) {
+        newDeleteSet.delete(tag.id!);
+      }
+
+      const newEditMap = new Map(prev.tagsToEdit);
+
+      // If values match original, remove from edits; otherwise add/update
+      if (tagName === tag.name && tagDescription === tag.description) {
+        newEditMap.delete(tag.id!);
+      } else {
+        newEditMap.set(tag.id!, {
+          name: tagName,
+          description: tagDescription,
+        });
+      }
+
+      return {
+        ...prev,
+        tagsToDelete: newDeleteSet,
+        tagsToEdit: newEditMap,
+      };
+    });
   };
 
   const handleDeleteTag = async (tag: Tag) => {
@@ -261,18 +326,21 @@ export const TagPage: React.FC<TagPageProps> = ({
       }
     }
 
-    if (draft?.tagsToEdit.has(tag.id)) {
-      draft.tagsToEdit.delete(tag.id);
-    }
+    setDraft((prev) => {
+      if (!prev) return null;
 
-    setDraft((prev) =>
-      prev
-        ? {
-            ...prev,
-            tagsToDelete: new Set(prev.tagsToDelete).add(tag.id!),
-          }
-        : null
-    );
+      // Remove from edits if present
+      const newEditMap = new Map(prev.tagsToEdit);
+      if (newEditMap.has(tag.id!)) {
+        newEditMap.delete(tag.id!);
+      }
+
+      return {
+        ...prev,
+        tagsToEdit: newEditMap,
+        tagsToDelete: new Set(prev.tagsToDelete).add(tag.id!),
+      };
+    });
   };
 
   const handleRowClick = (group: TagGroup) => {
@@ -437,14 +505,23 @@ export const TagPage: React.FC<TagPageProps> = ({
           </Box>
 
           <Box sx={{ flex: 1, overflowY: 'auto', px: 3 }}>
-            {selectedGroup && selectedGroup.tags.length > 0 ? (
+            {selectedGroup && getDisplayTags().length > 0 ? (
               <List sx={{ p: 0 }} subheader={<ListSubheader>Tags</ListSubheader>}>
-                {selectedGroup.tags.map((tag, idx) => (
+                {getDisplayTags().map((tag, idx) => (
                   <>
                     <ListItem
                       key={tag.id || `temp-${tag.name}`}
-                      divider={idx < selectedGroup.tags.length - 1}
+                      divider={idx < getDisplayTags().length - 1}
                     >
+                      {isAdmin && !draftHasNoTags(draft) && (
+                        <ListItemIcon sx={{ minWidth: 28, minHeight: 0, mr: 1 }}>
+                          {isTagInDraft(tag) && (
+                            <Tooltip title="Tag has unsaved changes">
+                              <NewReleasesOutlined color="info" />
+                            </Tooltip>
+                          )}
+                        </ListItemIcon>
+                      )}
                       <ListItemText
                         primary={tag.name}
                         secondary={tag.description}

@@ -39,7 +39,6 @@ function PVBrowser() {
   const [continuationToken, setContinuationToken] = useState<string | undefined>(undefined);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [isLoadingAll, setIsLoadingAll] = useState(false);
   const [tagGroupMap, setTagGroupMap] = useState<TagGroupMap>(new Map());
   const [tagGroups, setTagGroups] = useState<TagGroupInfo[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -271,73 +270,6 @@ function PVBrowser() {
     tagGroupMap,
     activeFilters,
     tagGroups,
-    buildTagFilters,
-    formatPVs,
-  ]);
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const loadAllPVs = useCallback(async () => {
-    if (isLoadingAll) return;
-
-    const startTime = performance.now();
-    // eslint-disable-next-line no-console
-    console.log('Starting to load all PVs...');
-
-    try {
-      setIsLoadingAll(true);
-      let allPVs: PV[] = [];
-      let token: string | undefined;
-      let pageCount = 0;
-
-      const tagFilters = buildTagFilters(activeFilters, tagGroups);
-
-      // Load all pages
-      do {
-        // eslint-disable-next-line no-await-in-loop
-        const response = await pvService.findPVsPaged({
-          pvName: searchQuery,
-          continuationToken: token,
-          pageSize: PAGE_SIZE,
-          tagFilters: Object.keys(tagFilters).length > 0 ? tagFilters : undefined,
-        });
-
-        const formattedPVs = formatPVs(response.results, tagGroupMap);
-        allPVs = [...allPVs, ...formattedPVs];
-        token = response.continuationToken;
-        pageCount += 1;
-
-        // eslint-disable-next-line no-console
-        console.log(
-          `Loaded page ${pageCount}: ${response.results.length} PVs (total: ${allPVs.length})`
-        );
-      } while (token);
-
-      setPVs(allPVs);
-      setContinuationToken(undefined);
-      setHasMore(false);
-
-      const endTime = performance.now();
-      const duration = ((endTime - startTime) / 1000).toFixed(2);
-      // eslint-disable-next-line no-console
-      console.log(`Finished loading all PVs!`);
-      // eslint-disable-next-line no-console
-      console.log(`Total PVs loaded: ${allPVs.length}`);
-      // eslint-disable-next-line no-console
-      console.log(`Total pages: ${pageCount}`);
-      // eslint-disable-next-line no-console
-      console.log(`Time taken: ${duration} seconds`);
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('Failed to load all PVs:', err);
-    } finally {
-      setIsLoadingAll(false);
-    }
-  }, [
-    isLoadingAll,
-    activeFilters,
-    tagGroups,
-    searchQuery,
-    tagGroupMap,
     buildTagFilters,
     formatPVs,
   ]);

@@ -24,6 +24,7 @@ import {
   ListItemText,
   ListItemIcon,
   Tooltip,
+  InputAdornment,
 } from '@mui/material';
 import { Add, Delete, Edit, NewReleasesOutlined, NoteOutlined } from '@mui/icons-material';
 import { TagGroup, Tag } from '../types';
@@ -461,8 +462,10 @@ export const TagPage: React.FC<TagPageProps> = ({
           <Box sx={{ px: 3, pt: 1, borderBottom: '1px solid #eee' }}>
             <TextField
               fullWidth
+              margin="normal"
+              disabled={!isAdmin}
               label="Title"
-              value={draft?.groupChanges?.name || ''}
+              value={draft?.groupChanges.name || ''}
               onChange={(e) =>
                 setDraft((prev) =>
                   prev
@@ -470,36 +473,56 @@ export const TagPage: React.FC<TagPageProps> = ({
                         ...prev,
                         groupChanges: {
                           name: e.target.value,
-                          description: prev.groupChanges?.description || '',
+                          description: prev.groupChanges.description || '',
                         },
                       }
                     : null
                 )
               }
-              margin="normal"
-              disabled={!isAdmin}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    {groupNameChanged && (
+                      <Tooltip title="Group title has unsaved changes">
+                        <NewReleasesOutlined color="info" />
+                      </Tooltip>
+                    )}
+                  </InputAdornment>
+                ),
+              }}
             />
             <TextField
               fullWidth
+              margin="normal"
+              multiline
+              rows={2}
+              disabled={!isAdmin}
               label="Description"
-              value={draft?.groupChanges?.description || ''}
+              value={draft?.groupChanges.description || ''}
               onChange={(e) =>
                 setDraft((prev) =>
                   prev
                     ? {
                         ...prev,
                         groupChanges: {
-                          name: prev.groupChanges?.name || '',
+                          name: prev.groupChanges.name || '',
                           description: e.target.value,
                         },
                       }
                     : null
                 )
               }
-              margin="normal"
-              disabled={!isAdmin}
-              multiline
-              rows={2}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    {groupDescriptionChanged && (
+                      <Tooltip title="Group description has unsaved changes">
+                        <NewReleasesOutlined color="info" />
+                      </Tooltip>
+                    )}
+                  </InputAdornment>
+                ),
+              }}
             />
           </Box>
 

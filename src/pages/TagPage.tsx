@@ -22,10 +22,13 @@ import {
   List,
   ListItem,
   ListItemText,
-  ListItemSecondaryAction,
+  ListItemIcon,
+  Tooltip,
+  InputAdornment,
 } from '@mui/material';
-import { Add, Delete, Edit, NoteOutlined } from '@mui/icons-material';
+import { Add, Delete, Edit, NewReleasesOutlined, NoteOutlined } from '@mui/icons-material';
 import { TagGroup, Tag } from '../types';
+import { PendingTagGroupChanges } from '../routes/tags';
 
 interface TagPageProps {
   tagGroups?: TagGroup[];
@@ -33,14 +36,6 @@ interface TagPageProps {
   onAddGroup?: (name: string, description: string) => void;
   onEditGroup?: (id: string, name: string, description: string) => void;
   onDeleteGroup?: (id: string) => void;
-  onAddTag?: (groupId: string, tagName: string) => Promise<void>;
-  onEditTag?: (
-    groupId: string,
-    tagName: string,
-    name: string,
-    description: string
-  ) => Promise<void>;
-  onDeleteTag?: (groupId: string, tagName: string) => Promise<void>;
 }
 
 export const TagPage: React.FC<TagPageProps> = ({
@@ -49,15 +44,13 @@ export const TagPage: React.FC<TagPageProps> = ({
   onAddGroup,
   onEditGroup,
   onDeleteGroup,
-  onAddTag,
-  onEditTag,
-  onDeleteTag,
 }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [tagDialogOpen, setTagDialogOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<TagGroup | null>(null);
   const [selectedTag, setSelectedTag] = useState<Tag | null>(null);
   const [editMode, setEditMode] = useState(false);
+  const [draft, setDraft] = useState<PendingTagGroupChanges | null>(null);
 
   // Form state
   const [groupName, setGroupName] = useState('');
@@ -81,11 +74,19 @@ export const TagPage: React.FC<TagPageProps> = ({
       setSelectedGroup(group);
       setGroupName(group.name);
       setGroupDescription(group.description);
+      setDraft({
+        groupId: group.id,
+        groupChanges: { name: group.name, description: group.description || '' },
+        tagsToAdd: [],
+        tagsToEdit: new Map(),
+        tagsToDelete: new Set(),
+      });
       setEditMode(true);
     } else {
       setSelectedGroup(null);
       setGroupName('');
       setGroupDescription('');
+      setDraft(null);
       setEditMode(false);
     }
     setNewTagName('');
@@ -94,6 +95,7 @@ export const TagPage: React.FC<TagPageProps> = ({
 
   const handleCloseDialog = () => {
     setDialogOpen(false);
+    setDraft(null);
     setSelectedGroup(null);
     setGroupName('');
     setGroupDescription('');
@@ -141,57 +143,204 @@ export const TagPage: React.FC<TagPageProps> = ({
     }
   };
 
+  const groupNameChanged = draft?.groupChanges.name !== selectedGroup?.name;
+  const groupDescriptionChanged = draft?.groupChanges.description !== selectedGroup?.description;
+
+  const draftHasTags = (draft: PendingTagGroupChanges | null): boolean => {
+    if (!draft) return false;
+    return draft.tagsToAdd.length > 0 || draft.tagsToEdit.size > 0 || draft.tagsToDelete.size > 0;
+  };
+
+  function draftIsEmpty(draft: PendingTagGroupChanges | null): boolean {
+    if (!draft) return true;
+    if (draftHasTags(draft)) return false;
+    if (groupNameChanged) return false;
+    if (groupDescriptionChanged) return false;
+    return true;
+  }
+
+  const isTagNameInUse = (name: string, excludeTagId?: string): boolean => {
+    if (!selectedGroup) return false;
+
+    // Check existing tags
+    if (selectedGroup.tags.some((t) => t.name === name && t.id !== excludeTagId)) {
+      return true;
+    }
+
+    // Check tags being added to draft
+    if (draft?.tagsToAdd.some((t) => t.name === name)) {
+      return true;
+    }
+
+    // Check tags being edited in draft
+    for (const [tagId, editData] of draft?.tagsToEdit || []) {
+      if (editData.name === name && tagId !== excludeTagId) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
+  const isTagInDraft = (tag: Tag): boolean => {
+    if (!draft) return false;
+
+    // Check if being added (tags without ID)
+    if (!tag.id && draft.tagsToAdd.some((t) => t.name === tag.name)) {
+      return true;
+    }
+
+    // Check if being edited or deleted
+    if (tag.id) {
+      if (draft.tagsToEdit.has(tag.id) || draft.tagsToDelete.has(tag.id)) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
+  const getDisplayTags = (): Tag[] => {
+    if (!selectedGroup || !draft) return selectedGroup?.tags || [];
+
+    // Start with original tags, excluding deleted ones, and apply edits
+    const displayTags = selectedGroup.tags
+      .filter((tag) => !draft.tagsToDelete.has(tag.id || ''))
+      .map((tag) => {
+        if (tag.id && draft.tagsToEdit.has(tag.id)) {
+          const edits = draft.tagsToEdit.get(tag.id)!;
+          return {
+            ...tag,
+            name: edits.name,
+            description: edits.description,
+          };
+        }
+        return tag;
+      });
+
+    // Add new tags (with temporary display data)
+    const newTags = draft.tagsToAdd.map((t) => ({
+      id: undefined as any,
+      name: t.name,
+      description: t.description,
+    }));
+
+    return [...displayTags, ...newTags];
+  };
+
   const handleAddNewTag = async () => {
     if (!newTagName.trim()) {
       alert('Tag name is required');
       return;
     }
+    if (!selectedGroup) return;
 
-    if (!selectedGroup || !onAddTag) return;
-
-    try {
-      await onAddTag(selectedGroup.id, newTagName);
-      setNewTagName('');
-      // Refresh the selected group data
-      const updatedGroup = tagGroups.find((g) => g.id === selectedGroup.id);
-      if (updatedGroup) {
-        setSelectedGroup(updatedGroup);
-      }
-    } catch (err) {
-      console.error('Failed to add tag:', err);
-      alert('Failed to add tag: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    if (isTagNameInUse(newTagName)) {
+      alert(`Tag "${newTagName}" already exists in this group`);
+      return;
     }
+
+    setDraft((prev) =>
+      prev
+        ? {
+            ...prev,
+            tagsToAdd: [...prev.tagsToAdd, { name: newTagName, description: '' }],
+          }
+        : null
+    );
+    setNewTagName('');
   };
 
   const handleEditTag = async (tag: Tag) => {
-    if (!selectedGroup || !onEditTag) return;
+    if (!selectedGroup) return;
 
-    try {
-      await onEditTag(selectedGroup.id, tag.name, tagName, tagDescription);
-    } catch (err) {
-      console.error('Failed to edit tag:', err);
-      alert('Failed to edit tag: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    // Check if new name is already in use (excluding the current tag)
+    if (tagName !== tag.name && isTagNameInUse(tagName, tag.id)) {
+      alert(`Tag "${tagName}" already exists in this group`);
+      return;
     }
+
+    if (!tag.id) {
+      if (draft?.tagsToAdd.find((t) => t.name === tag.name)) {
+        setDraft((prev) =>
+          prev
+            ? {
+                ...prev,
+                tagsToAdd: prev.tagsToAdd.map((t) =>
+                  t.name === tag.name ? { name: tagName, description: tagDescription } : t
+                ),
+              }
+            : null
+        );
+        return;
+      } else {
+        throw new Error('Tag ID is missing');
+      }
+    }
+
+    setDraft((prev) => {
+      if (!prev) return null;
+
+      const newDeleteSet = new Set(prev.tagsToDelete);
+      if (newDeleteSet.has(tag.id!)) {
+        newDeleteSet.delete(tag.id!);
+      }
+
+      const newEditMap = new Map(prev.tagsToEdit);
+
+      // If values match original, remove from edits; otherwise add/update
+      if (tagName === tag.name && tagDescription === tag.description) {
+        newEditMap.delete(tag.id!);
+      } else {
+        newEditMap.set(tag.id!, {
+          name: tagName,
+          description: tagDescription,
+        });
+      }
+
+      return {
+        ...prev,
+        tagsToDelete: newDeleteSet,
+        tagsToEdit: newEditMap,
+      };
+    });
   };
 
   const handleDeleteTag = async (tag: Tag) => {
     if (!confirm(`Delete tag "${tag.name}"?`)) return;
+    if (!selectedGroup) return;
 
-    if (!selectedGroup || !onDeleteTag) return;
-
-    try {
-      // We need to find the tag ID - for now we're using tag name
-      // The backend API expects tag ID, so we'll need to update this
-      await onDeleteTag(selectedGroup.id, tag.name);
-      // Refresh the selected group data
-      const updatedGroup = tagGroups.find((g) => g.id === selectedGroup.id);
-      if (updatedGroup) {
-        setSelectedGroup(updatedGroup);
+    if (!tag.id) {
+      if (draft?.tagsToAdd.find((t) => t.name === tag.name)) {
+        setDraft((prev) =>
+          prev
+            ? {
+                ...prev,
+                tagsToAdd: prev.tagsToAdd.filter((t) => t.name !== tag.name),
+              }
+            : null
+        );
+        return;
+      } else {
+        throw new Error('Tag ID is missing');
       }
-    } catch (err) {
-      console.error('Failed to delete tag:', err);
-      alert('Failed to delete tag: ' + (err instanceof Error ? err.message : 'Unknown error'));
     }
+
+    setDraft((prev) => {
+      if (!prev) return null;
+
+      // Remove from edits if present
+      const newEditMap = new Map(prev.tagsToEdit);
+      if (newEditMap.has(tag.id!)) {
+        newEditMap.delete(tag.id!);
+      }
+
+      return {
+        ...prev,
+        tagsToEdit: newEditMap,
+        tagsToDelete: new Set(prev.tagsToDelete).add(tag.id!),
+      };
+    });
   };
 
   const handleRowClick = (group: TagGroup) => {
@@ -313,34 +462,83 @@ export const TagPage: React.FC<TagPageProps> = ({
           <Box sx={{ px: 3, pt: 1, borderBottom: '1px solid #eee' }}>
             <TextField
               fullWidth
-              label="Title"
-              value={groupName}
-              onChange={(e) => setGroupName(e.target.value)}
               margin="normal"
               disabled={!isAdmin}
+              label="Title"
+              value={draft?.groupChanges.name || ''}
+              onChange={(e) =>
+                setDraft((prev) =>
+                  prev
+                    ? {
+                        ...prev,
+                        groupChanges: {
+                          name: e.target.value,
+                          description: prev.groupChanges.description || '',
+                        },
+                      }
+                    : null
+                )
+              }
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    {groupNameChanged && (
+                      <Tooltip title="Group title has unsaved changes">
+                        <NewReleasesOutlined color="info" />
+                      </Tooltip>
+                    )}
+                  </InputAdornment>
+                ),
+              }}
             />
             <TextField
               fullWidth
-              label="Description"
-              value={groupDescription}
-              onChange={(e) => setGroupDescription(e.target.value)}
               margin="normal"
-              disabled={!isAdmin}
               multiline
               rows={2}
+              disabled={!isAdmin}
+              label="Description"
+              value={draft?.groupChanges.description || ''}
+              onChange={(e) =>
+                setDraft((prev) =>
+                  prev
+                    ? {
+                        ...prev,
+                        groupChanges: {
+                          name: prev.groupChanges.name || '',
+                          description: e.target.value,
+                        },
+                      }
+                    : null
+                )
+              }
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    {groupDescriptionChanged && (
+                      <Tooltip title="Group description has unsaved changes">
+                        <NewReleasesOutlined color="info" />
+                      </Tooltip>
+                    )}
+                  </InputAdornment>
+                ),
+              }}
             />
           </Box>
 
           <Box sx={{ flex: 1, overflowY: 'auto', px: 3 }}>
-            {selectedGroup && selectedGroup.tags.length > 0 ? (
+            {selectedGroup && getDisplayTags().length > 0 ? (
               <List sx={{ p: 0 }} subheader={<ListSubheader>Tags</ListSubheader>}>
-                {selectedGroup.tags.map((tag, idx) => (
+                {getDisplayTags().map((tag, idx) => (
                   <>
-                    <ListItem key={idx} divider={idx < selectedGroup.tags.length - 1}>
+                    <ListItem
+                      key={tag.id || `temp-${tag.name}`}
+                      divider={idx < getDisplayTags().length - 1}
+                    >
                       <ListItemText
                         primary={tag.name}
                         secondary={tag.description}
-                        sx={{ pr: 3, overflow: 'hidden' }}
+                        sx={{ overflow: 'hidden' }}
                         secondaryTypographyProps={{
                           variant: 'subtitle2',
                           style: {
@@ -350,34 +548,35 @@ export const TagPage: React.FC<TagPageProps> = ({
                           },
                         }}
                       />
-                      <ListItemSecondaryAction>
-                        {onEditTag && (
-                          <IconButton
-                            edge="end"
-                            aria-label="edit tag"
-                            size="small"
-                            onClick={() => handleOpenTagDialog(tag)}
-                            color="default"
-                          >
-                            {isAdmin ? (
-                              <Edit fontSize="small" />
-                            ) : (
-                              <NoteOutlined fontSize="small" />
-                            )}
-                          </IconButton>
-                        )}
-                        {isAdmin && onDeleteTag && (
-                          <IconButton
-                            edge="end"
-                            aria-label="delete"
-                            size="small"
-                            onClick={() => handleDeleteTag(tag)}
-                            color="error"
-                          >
-                            <Delete fontSize="small" />
-                          </IconButton>
-                        )}
-                      </ListItemSecondaryAction>
+                      {isAdmin && draftHasTags(draft) && (
+                        <ListItemIcon sx={{ minWidth: '26px' }}>
+                          {isTagInDraft(tag) && (
+                            <Tooltip title="Tag has unsaved changes">
+                              <NewReleasesOutlined color="info" />
+                            </Tooltip>
+                          )}
+                        </ListItemIcon>
+                      )}
+                      <IconButton
+                        edge="end"
+                        aria-label="edit tag"
+                        size="small"
+                        onClick={() => handleOpenTagDialog(tag)}
+                        color="default"
+                      >
+                        {isAdmin ? <Edit fontSize="small" /> : <NoteOutlined fontSize="small" />}
+                      </IconButton>
+                      {isAdmin && (
+                        <IconButton
+                          edge="end"
+                          aria-label="delete"
+                          size="small"
+                          onClick={() => handleDeleteTag(tag)}
+                          color="error"
+                        >
+                          <Delete fontSize="small" />
+                        </IconButton>
+                      )}
                     </ListItem>
                   </>
                 ))}
@@ -389,7 +588,7 @@ export const TagPage: React.FC<TagPageProps> = ({
             )}
           </Box>
 
-          {isAdmin && editMode && onAddTag && (
+          {isAdmin && editMode && (
             <Box sx={{ px: 3, py: 2, borderTop: '1px solid #eee' }}>
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <TextField
@@ -397,7 +596,7 @@ export const TagPage: React.FC<TagPageProps> = ({
                   label="New Tag Name"
                   value={newTagName}
                   onChange={(e) => setNewTagName(e.target.value)}
-                  onKeyPress={(e) => {
+                  onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
                       handleAddNewTag();
@@ -410,6 +609,7 @@ export const TagPage: React.FC<TagPageProps> = ({
                   onClick={handleAddNewTag}
                   variant="outlined"
                   size="small"
+                  disabled={!newTagName.trim()}
                 >
                   Add
                 </Button>
@@ -420,7 +620,11 @@ export const TagPage: React.FC<TagPageProps> = ({
         <DialogActions>
           <Button onClick={handleCloseDialog}>{isAdmin ? 'Cancel' : 'Close'}</Button>
           {isAdmin && (
-            <Button variant="contained" onClick={handleSave}>
+            <Button
+              variant="contained"
+              onClick={handleSave}
+              disabled={draftIsEmpty(draft) || !groupName.trim()}
+            >
               Save
             </Button>
           )}

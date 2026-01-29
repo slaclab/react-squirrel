@@ -5,6 +5,14 @@ import { tagsService } from '../services';
 import { useAdminMode } from '../contexts/AdminModeContext';
 import { TagGroup } from '../types';
 
+export interface PendingTagGroupChanges {
+  groupId: string;
+  groupChanges: { name: string; description: string };
+  tagsToAdd: { name: string; description?: string }[];
+  tagsToEdit: Map<string, { name: string; description?: string }>; // tag ID -> new values
+  tagsToDelete: Set<string>; // tag IDs to delete
+}
+
 export const Route = createFileRoute('/tags')({
   component: Tags,
 });
@@ -124,23 +132,12 @@ function Tags() {
 
   const handleEditTag = async (
     groupId: string,
-    tagName: string,
+    tagId: string,
     newTagName: string,
     newTagDescription: string
   ) => {
     try {
-      // Find the tag ID from the tag name
-      const group = tagGroups.find((g) => g.id === groupId);
-      if (!group || !group.tags) {
-        throw new Error('Tag group not found');
-      }
-
-      const tag = group.tags.find((t) => t.name === tagName);
-      if (!tag) {
-        throw new Error('Tag not found');
-      }
-
-      await tagsService.updateTagInGroup(groupId, tag.id, {
+      await tagsService.updateTagInGroup(groupId, tagId, {
         name: newTagName,
         description: newTagDescription,
       });
@@ -152,7 +149,7 @@ function Tags() {
             ? {
                 ...group,
                 tags: group.tags.map((tag) =>
-                  tag.name === tagName
+                  tag.id === tagId
                     ? { ...tag, name: newTagName, description: newTagDescription }
                     : tag
                 ),
@@ -179,6 +176,9 @@ function Tags() {
         throw new Error('Tag not found');
       }
 
+      if (!tag.id) {
+        throw new Error('Tag ID is missing');
+      }
       await tagsService.removeTagFromGroup(groupId, tag.id);
       await fetchTagGroups(); // Refresh the list
     } catch (err) {
@@ -202,9 +202,6 @@ function Tags() {
       onAddGroup={handleAddGroup}
       onEditGroup={handleEditGroup}
       onDeleteGroup={handleDeleteGroup}
-      onAddTag={handleAddTag}
-      onEditTag={handleEditTag}
-      onDeleteTag={handleDeleteTag}
     />
   );
 }
